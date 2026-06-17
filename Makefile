@@ -1,4 +1,3 @@
-
 ARG ?=
 RUN := uv run -m src
 LINT_FLAG := --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
@@ -24,11 +23,12 @@ lint:
 lint-strict:
 	mypy src && flake8 src --strict
 
-vllm: vllm-0.10.1/.installed
+vllm: data/raw/vllm-0.10.1/.installed
 
-vllm-0.10.1/.installed: data/vllm-0.10.1.zip
-	unzip data/vllm-0.10.1.zip
-	touch vllm-0.10.1/.installed
+vllm-0.10.1/.installed: zip/vllm-0.10.1.zip
+	mkdir -p data/raw
+	unzip zip/vllm-0.10.1.zip -d data/raw
+	touch data/raw/vllm-0.10.1/.installed
 
 index: vllm
 	$(RUN) index
@@ -47,5 +47,8 @@ answer_dataset: search_dataset
 
 evaluate:
 	$(RUN) evaluate
+
+moulinette:
+	unzip zip/moulinete.zip
 
 .PHONY: run install debug clean lint lint-strict vllm index search search_dataset answer answer_dataset evaluate

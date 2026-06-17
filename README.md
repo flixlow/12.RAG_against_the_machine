@@ -29,4 +29,6 @@ knowledge base
 given questions
 3. Answer questions using an LLM (Qwen/Qwen3-0.6B) with the retrieved context
 4. Evaluate your retrieval system’s quality using recall@k metrics
-- tester avec chunk_size petit pour voir qu'il n'y est pas de probleme avec le chunk size overlap * 0.05
+
+[ ] tester avec chunk_size petit pour voir qu'il n'y est pas de probleme avec le chunk size overlap * 0.05
+[ ] pas sur du \n\n pour le separateur

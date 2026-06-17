@@ -13,7 +13,7 @@ class Rag:
     def search_dataset(self) -> None:
         print("search_data_set")
 
-    def answer(self, k: int) -> None:
+    def answer(self, query: str, k: int = 5) -> None:
         print("answer")
 
     def answer_dataset(self) -> None:
