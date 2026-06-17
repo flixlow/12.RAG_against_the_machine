@@ -5,16 +5,18 @@
 ## Instructions
 
 ## Resources
+- Fire doc: https://python-fire.readthedocs.io/en/latest/
+- Langchain doc: https://reference.langchain.com/python/langchain-text-splitters
+- Pydantic doc: https://pydantic.dev/docs/validation/latest/get-started
+- Pathlib (rglob): https://docs.python.org/3/library/pathlib.html
+- bm25s doc: https://bm25s.github.io/
+
 - transformers
 - dspy
-- fire
 - tqdm
-- langchain
-- bm25s
 - chromadb
 - Qwen/Qwen3-0.6B
-- python fire: CLI Command Line Interface
-- Pathlib rglob
+- asv
 - dspy -> cache
 
 ## Brouillon

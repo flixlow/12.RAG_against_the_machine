@@ -1,24 +1,40 @@
+from langchain_text_splitters import (RecursiveCharacterTextSplitter as RCTS,
+                                      Language)
+from src.models import ChunkData, MinimalSource
+from pydantic import BaseModel, Field
 from pathlib import Path
-from langchain_text_splitters import RecursiveCharacterTextSplitter as RCTS
-from langchain_text_splitters import Language
-from langchain_core.documents import Document
+from typing import Any
+import bm25s
+import json
 
+class Index(BaseModel):
+    dir: str
+    chunk_size: int = Field(gt=0)
 
-class Index:
-    def __init__(self, dir: str, chunk_size: int) -> None:
-        self.files: list[Path] = self.listing(dir)
-        self.chunks: list[list[Document]] = []
-        self.open(chunk_size)
-        self.output()
+    def model_post_init(self, _: Any) -> None:
+        self._chunks: list[ChunkData] = []
+        self._files: list[Path] = self.listing(self.dir)
+        self.open(self.chunk_size)
+        self.split()
+        self.index()
 
     @staticmethod
     def listing(dir: str) -> list[Path]:
         return [f for f in Path(dir).rglob('*') if f.is_file()]
 
     def chunking(self, splitter: RCTS, file: str, content: str) -> None:
-        documents = splitter.create_documents([content], [{"file_path": file}])
-        print(documents)
-        self.chunks.append(splitter.split_documents(documents))
+        chunks = splitter.create_documents([content])
+        for chunk in chunks:
+            start = chunk.metadata['start_index']
+            source = MinimalSource(
+                file_path=file,
+                first_character_index=start,
+                last_character_index=start + len(chunk.page_content)
+            )
+            self._chunks.append(ChunkData(
+                content=chunk.page_content,
+                metadata=source
+            ))
 
     def open(self, chunk_size: int) -> None:
         overlap: int = int(chunk_size * 0.05)
@@ -35,7 +51,7 @@ class Index:
                                          add_start_index=True)
         splitters = {".py": py_splitter, ".md": md_splitter}
 
-        for file in self.files:
+        for file in self._files:
             try:
                 if file.suffix in ['.py', '.txt', '.md']:
                     with open(file) as f:
@@ -45,13 +61,19 @@ class Index:
                 print(f"\033[1;38;5;208m[WARNING]\033[0m Can't index {file}.")
                 continue
 
-    def output(self) -> None:
-        output_file = Path("data/processed/chunks/splitted.json")
-        output_file.parent.mkdir(exist_ok=True, parents=True)
+    def split(self) -> None:
+        file = Path("data/processed/chunks/splitted.json")
+        file.parent.mkdir(exist_ok=True, parents=True)
         try:
-            with open(output_file, 'w') as f:
-                pass
+            with open(file, 'w') as f:
+                chunks = [chunk.model_dump() for chunk in self._chunks]
+                json.dump(chunks, f, ensure_ascii=True, indent=4)
         except (PermissionError, FileNotFoundError, IsADirectoryError):
-            print("\033[1;38;5;208m[ERROR]\033[0m",
-                  "Can't open file to store chunks.")
+            print(f"\033[1;38;5;208m[ERROR]\033[0m Can't open file {file}.")
         print("Ingestion complete! Indices saved under data/processed/")
+
+    def index(self) -> None:
+        corpus = [chunk['content'] for chunk in self._chunks]
+        folder = Path("data/processed/bm25_index/")
+        folder.mkdir(exist_ok=True, parents=True)
+        try:
