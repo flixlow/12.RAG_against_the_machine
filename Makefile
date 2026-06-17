@@ -1,7 +1,10 @@
+
+ARG ?=
+RUN := uv run -m src
 LINT_FLAG := --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
 run: install
-	uv run -m src
+	$(RUN) $(ARG)
 
 install:
 	uv sync
@@ -27,4 +30,22 @@ vllm-0.10.1/.installed: data/vllm-0.10.1.zip
 	unzip data/vllm-0.10.1.zip
 	touch vllm-0.10.1/.installed
 
-.PHONY: run install debug clean lint lint-strict vllm
+index: vllm
+	$(RUN) index
+
+search: index
+	$(RUN) search 
+
+search_dataset:
+	$(RUN) search_dataset	
+
+answer: search
+	$(RUN) answer
+
+answer_dataset: search_dataset
+	$(RUN) answer_dataset
+
+evaluate:
+	$(RUN) evaluate
+
+.PHONY: run install debug clean lint lint-strict vllm index search search_dataset answer answer_dataset evaluate
