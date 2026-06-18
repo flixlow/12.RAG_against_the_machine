@@ -10,6 +10,7 @@
 - Pydantic doc: https://pydantic.dev/docs/validation/latest/get-started
 - Pathlib (rglob): https://docs.python.org/3/library/pathlib.html
 - bm25s doc: https://bm25s.github.io/
+- tqdm doc: https://tqdm.github.io/
 
 - transformers
 - dspy
@@ -25,6 +26,36 @@
 - indexer
 - trier selon la pertinence
 - Retrieval-Augmented Generation (RAG) system
+- comment fonctionne bm25s ? TD-IDF, Saturation du TF, Normalisation par la longueur des documents
+
+Ce qu’il reprend de TF-IDF
+TF (term frequency) : plus un mot apparaît dans un document, plus il compte
+IDF (inverse document frequency) : un mot rare dans le corpus est plus important qu’un mot très fréquent
+Ce que BM25 change par rapport à TF-IDF
+
+BM25 ajoute deux idées importantes :
+
+1) Saturation du TF
+
+Dans TF-IDF, si un mot apparaît 50 fois, il devient 50× plus important (linéaire).
+
+BM25 corrige ça :
+
+au début, chaque occurrence aide beaucoup
+puis ça “plafonne” (diminishing returns)
+
+intuition : répéter 100 fois “chat” n’aide pas 100× plus.
+
+2) Normalisation par la longueur des documents
+
+Un long document a naturellement plus de mots.
+
+BM25 corrige ça :
+
+un mot dans un petit document “pèse” plus
+un mot dans un long document est pénalisé
+
+
 1. Ingest the vLLM repository (provided as attachment) and create a searchable
 knowledge base
 2. Search this knowledge base to find relevant code snippets and documentation for
