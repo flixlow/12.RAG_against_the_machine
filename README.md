@@ -65,3 +65,5 @@ given questions
 
 [ ] tester avec chunk_size petit pour voir qu'il n'y est pas de probleme avec le chunk size overlap * 0.05
 [ ] pas sur du \n\n pour le separateur
+[ ] peut etre refactore le code de index pour transformer en 4 classes, une pour la liste de fichier, une pour le open, une pour chunk et une pour l'indexage
+[ ] choix de OSError pour les erreurs d'ouverture de fichiers

@@ -32,16 +32,16 @@ data/raw/vllm-0.10.1/.installed: zip/vllm-0.10.1.zip
 	touch data/raw/vllm-0.10.1/.installed
 
 index: vllm
-	$(RUN) index
+	$(RUN) index $(ARG)
 
-search: index
-	$(RUN) search 
+search:
+	$(RUN) search $(ARG)
 
 search_dataset:
 	$(RUN) search_dataset	
 
 answer: search
-	$(RUN) answer
+	$(RUN) answer $(ARG)
 
 answer_dataset: search_dataset
 	$(RUN) answer_dataset

@@ -2,7 +2,7 @@ from langchain_text_splitters import (RecursiveCharacterTextSplitter as RCTS,
                                       Language)
 from src.models import ChunkData, MinimalSource
 from pydantic import BaseModel, Field
-from tqdm import tqdm  # type: ignore
+from src.errors import RagIndexError
 import bm25s  # type: ignore
 from pathlib import Path
 from typing import Any
@@ -19,6 +19,8 @@ class Index(BaseModel):
 
     @staticmethod
     def listing(dir: str) -> list[Path]:
+        if not Path(dir).exists():
+            raise RagIndexError("The given path does not exist.")
         return [f for f in Path(dir).rglob('*') if f.is_file()]
 
     def open(self) -> None:
@@ -36,14 +38,14 @@ class Index(BaseModel):
                                          add_start_index=True)
         splitters = {".py": py_splitter, ".md": md_splitter}
 
-        for file in tqdm(self._files, desc="Langchain splitting files: "):
+        for file in self._files:
             try:
                 if file.suffix in ['.py', '.txt', '.md']:
                     with open(file) as f:
                         self.chunking(splitters.get(file.suffix, txt_splitter),
                                       file.as_posix(), f.read())
-            except (PermissionError, FileNotFoundError, IsADirectoryError):
-                print(f"\033[1;38;5;208m[WARNING]\033[0m Can't index {file}.")
+            except OSError:
+                print(f"\033[1;38;5;208m[WARNING]\033[0m Can't open {file}.")
                 continue
 
     def chunking(self, splitter: RCTS, file: str, content: str) -> None:
@@ -62,6 +64,9 @@ class Index(BaseModel):
             ))
 
     def save(self) -> None:
+        if self._chunks == []:
+            raise RagIndexError("No data has been processed: "
+                                "please, ensure raw data is available.")
         file = Path("data/processed/chunks/splitted.json")
         file.parent.mkdir(exist_ok=True, parents=True)
 
@@ -69,8 +74,8 @@ class Index(BaseModel):
             with open(file, 'w') as f:
                 chunks = [chunk.model_dump() for chunk in self._chunks]
                 json.dump(chunks, f, ensure_ascii=True, indent=4)
-        except (PermissionError, FileNotFoundError, IsADirectoryError):
-            print(f"\033[1;38;5;208m[ERROR]\033[0m Can't open file {file}.")
+        except OSError as e:
+            raise RagIndexError(f"Can't save chunk to file {file}.") from e
 
     def index(self) -> None:
         corpus = [chunk.content for chunk in self._chunks]
