@@ -11,7 +11,7 @@ import json
 
 class Index(BaseModel):
     dir: str
-    chunk_size: int = Field(gt=0)
+    chunk_size: int = Field(gt=0, le=2000)
 
     def model_post_init(self, _: Any) -> None:
         self._chunks: list[ChunkData] = []

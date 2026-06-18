@@ -32,10 +32,12 @@ data/raw/vllm-0.10.1/.installed: zip/vllm-0.10.1.zip
 	touch data/raw/vllm-0.10.1/.installed
 
 index: vllm
-	$(RUN) index $(ARG)
+	$(RUN) index 	$(ARG)
+# uv run python -m src index --max_chunk_size 2000
 
 search:
 	$(RUN) search $(ARG)
+# uv run python -m student answer "How to configure OpenAI server?" --k 10
 
 search_dataset:
 	$(RUN) search_dataset	

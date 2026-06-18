@@ -6,9 +6,9 @@ from src.search import SingleQuery
 
 class Rag:
     def index(self, dir: str = "data/raw/vllm-0.10.1",
-              chunk_size: int = 2000) -> None:
+              max_chunk_size: int = 2000) -> None:
         start = time.time()
-        index = Index(dir=dir, chunk_size=chunk_size)
+        index = Index(dir=dir, chunk_size=max_chunk_size)
         index.open()
         index.save()
         index.index()
@@ -22,13 +22,18 @@ class Rag:
         search = SingleQuery(query=query, k=k)
         search.search()
 
-    def search_dataset(self) -> None:
+    def search_dataset(self, dataset_path: str, k: int = 5,
+                       save_directory: str = "data/output/search_results"
+                       ) -> None:
         print("search_data_set")
 
     def answer(self, query: str, k: int = 5) -> None:
         print("answer")
 
-    def answer_dataset(self) -> None:
+    def answer_dataset(
+            self, search_results_path: str,
+            save_directory: str = "data/output/search_results_and_answer"
+            ) -> None:
         print("answer_dataset")
 
     def evaluate(self) -> None:

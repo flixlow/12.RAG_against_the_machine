@@ -67,3 +67,10 @@ given questions
 [ ] pas sur du \n\n pour le separateur
 [ ] peut etre refactore le code de index pour transformer en 4 classes, une pour la liste de fichier, une pour le open, une pour chunk et une pour l'indexage
 [ ] choix de OSError pour les erreurs d'ouverture de fichiers
+
+
+make install
+make index
+make search_dataset
+make answer_dataset
+make evaluate
