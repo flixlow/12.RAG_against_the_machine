@@ -15,7 +15,8 @@ clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	rm -rf .venv
-	rm -rf vllm-0.10.1
+	rm -rf data/raw/vllm-0.10.1
+	rm -rf data/processed
 
 lint:
 	flake8 && mypy $(LINT_FLAG) src
@@ -25,7 +26,7 @@ lint-strict:
 
 vllm: data/raw/vllm-0.10.1/.installed
 
-vllm-0.10.1/.installed: zip/vllm-0.10.1.zip
+data/raw/vllm-0.10.1/.installed: zip/vllm-0.10.1.zip
 	mkdir -p data/raw
 	unzip zip/vllm-0.10.1.zip -d data/raw
 	touch data/raw/vllm-0.10.1/.installed
