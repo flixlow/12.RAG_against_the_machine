@@ -7,6 +7,7 @@ run: install
 
 install:
 	uv sync
+	vllm
 
 debug:
 	uv run pdb -m src
@@ -31,27 +32,24 @@ data/raw/vllm-0.10.1/.installed: zip/vllm-0.10.1.zip
 	unzip zip/vllm-0.10.1.zip -d data/raw
 	touch data/raw/vllm-0.10.1/.installed
 
-index: vllm
-	$(RUN) index 	$(ARG)
-# uv run python -m src index --max_chunk_size 2000
-
-search:
-	$(RUN) search $(ARG)
-# uv run python -m student answer "How to configure OpenAI server?" --k 10
-
-search_dataset:
-	$(RUN) search_dataset	
-
-answer: search
-	$(RUN) answer $(ARG)
-
-answer_dataset: search_dataset
-	$(RUN) answer_dataset
-
-evaluate:
-	$(RUN) evaluate
-
 moulinette:
 	unzip zip/moulinete.zip
 
 .PHONY: run install debug clean lint lint-strict vllm index search search_dataset answer answer_dataset evaluate
+
+
+# index:
+# 	$(RUN) index $(ARG)
+# uv run python -m src index --max_chunk_size 2000
+# search:
+# 	$(RUN) search "How to configure OpenAI server?"
+# uv run python -m student search --k 10
+# search_dataset:
+# 	$(RUN) search_dataset
+# answer: search
+# 	$(RUN) answer $(ARG)
+# uv run python -m student answer "How to configure OpenAI server?" --k 10
+# answer_dataset: search_dataset
+# 	$(RUN) answer_dataset
+# evaluate:
+# 	$(RUN) evaluate

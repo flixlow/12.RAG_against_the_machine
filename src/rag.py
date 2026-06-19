@@ -1,7 +1,10 @@
-import time
+from src.models import UnansweredQuestion
+from src.errors import SearchError, InputSingleQueryError
+from src.search import Search
 from src.index import Index
-from src.errors import SearchError
-from src.search import SingleQuery
+from pathlib import Path
+import time
+import json
 
 
 class Rag:
@@ -15,20 +18,40 @@ class Rag:
         print(f"\n\033[34mIngestion complete in {time.time() - start:.3f}s!")
         print("\033[0;1mIndices saved under data/processed/")
 
-    def search(self, query: str | None = None, k: int = 5) -> None:
-        if query is None:
-            raise SearchError("Please, enter a query: "
-                              "make search ARG=\"'--query' '--k'\"")
-        search = SingleQuery(query=query, k=k)
-        search.search()
+    def search(self, query: str | None = None, k: int = 5,
+               save_directory: str = "data/output/search_results"
+               ) -> None:
+        if query is not None:
+            single = UnansweredQuestion(question=query)
+        else:
+            raise InputSingleQueryError
 
-    def search_dataset(self, dataset_path: str, k: int = 5,
+        searcher = Search(rag_questions=[single], k=k, save_dir=save_directory)
+        searcher.search_dataset()
+
+    def search_dataset(self,
+                       dataset_path: str = "data/datasets_public/public/"
+                       "UnansweredQuestions/dataset_docs_public.json",
+                       k: int = 5,
                        save_directory: str = "data/output/search_results"
                        ) -> None:
-        print("search_data_set")
+        if not Path(dataset_path).exists():
+            raise SearchError(f"invalid dataset_path: {dataset_path}")
+
+        try:
+            with open(dataset_path) as f:
+                content = f.read()
+                questions = json.loads(content)
+        except OSError:
+            raise SearchError(
+                f"occurs during loading content from {dataset_path}")
+        except json.JSONDecodeError as e:
+            raise SearchError from e
+        searcher = Search(**questions, k=k, save_dir=save_directory)
+        searcher.search_dataset()
 
     def answer(self, query: str, k: int = 5) -> None:
-        print("answer")
+        pass
 
     def answer_dataset(
             self, search_results_path: str,
