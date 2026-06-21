@@ -70,7 +70,7 @@ class Index(BaseModel):
         if self._chunks == []:
             raise RagIndexError("No data has been processed: "
                                 "please, ensure raw data is available.")
-        file = Path("data/processed/chunks/splitted.json")
+        file = Path("data/processed/chunks/chunks.json")
         file.parent.mkdir(exist_ok=True, parents=True)
 
         try:

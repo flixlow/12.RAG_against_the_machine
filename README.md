@@ -77,3 +77,4 @@ make evaluate
 
 [ ] search -> open file -> add to json file output in one time
 [ ] revoir toute la gestion des erreurs
+[ ] retirer les type ignore

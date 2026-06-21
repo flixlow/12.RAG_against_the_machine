@@ -1,6 +1,7 @@
 from src.models import UnansweredQuestion
 from src.errors import SearchError, InputSingleQueryError
 from src.search import Search
+from src.answer import Answer
 from src.index import Index
 from pathlib import Path
 import time
@@ -60,14 +61,18 @@ class Rag:
             )
         searcher.search_dataset()
 
-    def answer(self, query: str, k: int = 5) -> None:
+    def answer(self, query: str | None = None, k: int = 5,
+               save_directory: str = "data/output/search_results_and_answer"
+               ) -> None:
         pass
 
     def answer_dataset(
-            self, search_results_path: str,
+            self,
+            student_search_results_path: str,
             save_directory: str = "data/output/search_results_and_answer"
             ) -> None:
-        print("answer_dataset")
+        Answer(results_path=student_search_results_path,
+               save_dir=save_directory)
 
     def evaluate(self) -> None:
         print("evaluate")

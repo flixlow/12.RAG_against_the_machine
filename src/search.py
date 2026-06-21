@@ -1,5 +1,5 @@
-from src.models import (UnansweredQuestion, MinimalSearchResults,
-                        MinimalSource, StudentSearchResults)
+from src.models import UnansweredQuestion, MinimalSearchResults
+from src.models import MinimalSource, StudentSearchResults
 from src.errors import SearchError
 from pydantic import BaseModel
 import bm25s  # type: ignore
@@ -29,7 +29,7 @@ class Search(BaseModel):
                               ) from e
 
         try:
-            with open("data/processed/chunks/splitted.json") as f:
+            with open("data/processed/chunks/chunks.json") as f:
                 self._splitted: list[dict[str, Any]] = json.load(f)
         except (OSError, json.JSONDecodeError) as e:
             raise SearchError from e
@@ -77,6 +77,3 @@ class Search(BaseModel):
             raise SearchError from e
 
         print(f"Saved student_search_results to {file_str}")
-
-    def answer(self) -> None:
-        pass
