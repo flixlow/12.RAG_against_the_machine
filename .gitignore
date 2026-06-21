@@ -1,4 +1,4 @@
-data/raw/vllm-0.10.1
+data/raw
 data/processed
 data/output
 moulinette_pkg

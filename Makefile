@@ -25,7 +25,7 @@ clean:
 
 fclean: clean
 	rm -rf .venv
-	rm -rf data/raw/vllm-0.10.1
+	rm -rf data/raw
 
 lint:
 	flake8 src && mypy $(LINT_FLAG) src
