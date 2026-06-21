@@ -7,10 +7,9 @@ PUBLIC_CODE_ANSWERED_QUESTIONS := data/datasets_public/public/AnsweredQuestions/
 PUBLIC_DOCS_SEARCH_RESULTS := data/output/search_results/dataset_docs_public.json
 PUBLIC_CODE_SEARCH_RESULTS := data/output/search_results/dataset_code_public.json
 
-run: install
-	$(RUN) $(ARG)
+run: install index
 
-install: vllm
+install: data
 	uv sync
 
 debug:
@@ -19,13 +18,9 @@ debug:
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
-	rm -rf data/processed
-	rm -rf data/output
-	rm -rf moulinette_pkg
-
-fclean: clean
+	rm -rf moulinette_pkg	
 	rm -rf .venv
-	rm -rf data/raw
+	rm -rf data
 
 lint:
 	flake8 src && mypy $(LINT_FLAG) src
@@ -33,12 +28,13 @@ lint:
 lint-strict:
 	flake8 src && mypy src --strict
 
-vllm: data/raw/vllm-0.10.1/.installed
+data: data/.installed
 
-data/raw/vllm-0.10.1/.installed: zip/vllm-0.10.1.zip
+data/.installed: zip/datasets_public.zip zip/vllm-0.10.1.zip
 	mkdir -p data/raw
+	unzip zip/datasets_public.zip -d data
 	unzip zip/vllm-0.10.1.zip -d data/raw
-	touch data/raw/vllm-0.10.1/.installed
+	touch data/.installed
 
 moulinette: moulinette_pkg/.installed
 
@@ -68,4 +64,4 @@ evaluate_docs: moulinette
 evaluate_code: moulinette
 	./moulinette_pkg/moulinette-ubuntu evaluate_student_search_results $(PUBLIC_CODE_SEARCH_RESULTS) $(PUBLIC_CODE_ANSWERED_QUESTIONS)
 
-.PHONY: run install debug clean lint lint-strict vllm moulinette index search search_dataset answer answer_dataset evaluate recall
+.PHONY: run install debug clean lint lint-strict data moulinette index search search_dataset answer answer_dataset evaluate recall

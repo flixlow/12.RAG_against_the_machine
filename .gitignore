@@ -1,6 +1,4 @@
-data/raw
-data/processed
-data/output
+data
 moulinette_pkg
 
 # Byte-compiled / optimized / DLL files
