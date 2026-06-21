@@ -1,5 +1,6 @@
 ARG ?=
 RUN := uv run -m src
+QUERY ?= 'How to configure OpenAI server?'
 LINT_FLAG := --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
 PUBLIC_DOCS_ANSWERED_QUESTIONS := data/datasets_public/public/AnsweredQuestions/dataset_docs_public.json
@@ -11,6 +12,7 @@ run: install index
 
 install: data
 	uv sync
+	@echo "\033[0;32m\n[OK] installation completed ✔\n\033[0m"
 
 debug:
 	uv run pdb -m src
@@ -46,8 +48,7 @@ index:
 	$(RUN) index $(ARG)
 
 search:
-	$(RUN) search $(ARG)
-# make search ARG="'How to configure OpenAI server?'"
+	$(RUN) search $(QUERY)
 
 search_dataset:
 	$(RUN) search_dataset $(ARG)
