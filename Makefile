@@ -2,12 +2,16 @@ ARG ?=
 RUN := uv run -m src
 LINT_FLAG := --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
+PUBLIC_DOCS_ANSWERED_QUESTIONS := data/datasets_public/public/AnsweredQuestions/dataset_docs_public.json
+PUBLIC_CODE_ANSWERED_QUESTIONS := data/datasets_public/public/AnsweredQuestions/dataset_code_public.json
+PUBLIC_DOCS_SEARCH_RESULTS := data/output/search_results/dataset_docs_public.json
+PUBLIC_CODE_SEARCH_RESULTS := data/output/search_results/dataset_code_public.json
+
 run: install
 	$(RUN) $(ARG)
 
-install:
+install: vllm
 	uv sync
-	vllm
 
 debug:
 	uv run pdb -m src
@@ -15,15 +19,19 @@ debug:
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
+	rm -rf data/processed
+	rm -rf data/output
+	rm -rf moulinette_pkg
+
+fclean: clean
 	rm -rf .venv
 	rm -rf data/raw/vllm-0.10.1
-	rm -rf data/processed
 
 lint:
-	flake8 && mypy $(LINT_FLAG) src
+	flake8 src && mypy $(LINT_FLAG) src
 
 lint-strict:
-	mypy src && flake8 src --strict
+	flake8 src && mypy src --strict
 
 vllm: data/raw/vllm-0.10.1/.installed
 
@@ -32,24 +40,32 @@ data/raw/vllm-0.10.1/.installed: zip/vllm-0.10.1.zip
 	unzip zip/vllm-0.10.1.zip -d data/raw
 	touch data/raw/vllm-0.10.1/.installed
 
-moulinette:
-	unzip zip/moulinete.zip
+moulinette: moulinette_pkg/.installed
 
-.PHONY: run install debug clean lint lint-strict vllm index search search_dataset answer answer_dataset evaluate
+moulinette_pkg/.installed: zip/moulinette.zip
+	unzip zip/moulinette.zip
+	touch moulinette_pkg/.installed
 
+index:
+	$(RUN) index $(ARG)
 
-# index:
-# 	$(RUN) index $(ARG)
-# uv run python -m src index --max_chunk_size 2000
-# search:
-# 	$(RUN) search "How to configure OpenAI server?"
-# uv run python -m student search --k 10
-# search_dataset:
-# 	$(RUN) search_dataset
-# answer: search
-# 	$(RUN) answer $(ARG)
-# uv run python -m student answer "How to configure OpenAI server?" --k 10
-# answer_dataset: search_dataset
-# 	$(RUN) answer_dataset
-# evaluate:
-# 	$(RUN) evaluate
+search:
+	$(RUN) search $(ARG)
+# make search ARG="'How to configure OpenAI server?'"
+
+search_dataset:
+	$(RUN) search_dataset $(ARG)
+
+answer:
+	$(RUN) answer $(ARG)
+
+answer_dataset:
+	$(RUN) answer_dataset
+
+evaluate_docs: moulinette
+	./moulinette_pkg/moulinette-ubuntu evaluate_student_search_results $(PUBLIC_DOCS_SEARCH_RESULTS) $(PUBLIC_DOCS_ANSWERED_QUESTIONS)
+
+evaluate_code: moulinette
+	./moulinette_pkg/moulinette-ubuntu evaluate_student_search_results $(PUBLIC_CODE_SEARCH_RESULTS) $(PUBLIC_CODE_ANSWERED_QUESTIONS)
+
+.PHONY: run install debug clean lint lint-strict vllm moulinette index search search_dataset answer answer_dataset evaluate recall

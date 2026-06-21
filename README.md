@@ -74,3 +74,6 @@ make index
 make search_dataset
 make answer_dataset
 make evaluate
+
+[ ] search -> open file -> add to json file output in one time
+[ ] revoir toute la gestion des erreurs

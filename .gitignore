@@ -1,6 +1,7 @@
 data/raw/vllm-0.10.1
-data/processed/bm25_index
-data/processed/chunks
+data/processed
+data/output
+moulinette_pkg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

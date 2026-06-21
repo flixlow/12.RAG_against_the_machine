@@ -42,8 +42,11 @@ class Index(BaseModel):
             try:
                 if file.suffix in ['.py', '.txt', '.md']:
                     with open(file) as f:
-                        self.chunking(splitters.get(file.suffix, txt_splitter),
-                                      file.as_posix(), f.read())
+                        self.chunking(
+                            splitters.get(file.suffix, txt_splitter),
+                            file.as_posix(),
+                            f.read()
+                            )
             except OSError:
                 print(f"\033[1;38;5;208m[WARNING]\033[0m Can't open {file}.")
                 continue
@@ -73,7 +76,7 @@ class Index(BaseModel):
         try:
             with open(file, 'w') as f:
                 chunks = [chunk.model_dump() for chunk in self._chunks]
-                json.dump(chunks, f, ensure_ascii=True, indent=4)
+                json.dump(chunks, f, ensure_ascii=False, indent=4)
         except OSError as e:
             raise RagIndexError(f"Can't save chunk to file {file}.") from e
 

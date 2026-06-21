@@ -5,6 +5,7 @@ from src.index import Index
 from pathlib import Path
 import time
 import json
+import os
 
 
 class Rag:
@@ -26,12 +27,16 @@ class Rag:
         else:
             raise InputSingleQueryError
 
-        searcher = Search(rag_questions=[single], k=k, save_dir=save_directory)
+        searcher = Search(
+            rag_questions=[single],
+            k=k,
+            save_dir=save_directory,
+            file="single_query.json"
+            )
         searcher.search_dataset()
 
     def search_dataset(self,
-                       dataset_path: str = "data/datasets_public/public/"
-                       "UnansweredQuestions/dataset_docs_public.json",
+                       dataset_path: str,
                        k: int = 5,
                        save_directory: str = "data/output/search_results"
                        ) -> None:
@@ -43,11 +48,16 @@ class Rag:
                 content = f.read()
                 questions = json.loads(content)
         except OSError:
-            raise SearchError(
-                f"occurs during loading content from {dataset_path}")
+            raise SearchError(f"can't loading content from {dataset_path}")
         except json.JSONDecodeError as e:
             raise SearchError from e
-        searcher = Search(**questions, k=k, save_dir=save_directory)
+
+        searcher = Search(
+            **questions,
+            k=k,
+            save_dir=save_directory,
+            file=os.path.basename(dataset_path)
+            )
         searcher.search_dataset()
 
     def answer(self, query: str, k: int = 5) -> None:
