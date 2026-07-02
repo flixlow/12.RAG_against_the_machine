@@ -71,8 +71,9 @@ class Rag:
             student_search_results_path: str,
             save_directory: str = "data/output/search_results_and_answer"
             ) -> None:
-        Answer(results_path=student_search_results_path,
-               save_dir=save_directory)
+        provider = Answer(results_path=student_search_results_path,
+                          save_directory=save_directory)
+        provider.answer()
 
     def evaluate(self) -> None:
         print("evaluate")

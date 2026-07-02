@@ -78,3 +78,5 @@ make evaluate
 [ ] search -> open file -> add to json file output in one time
 [ ] revoir toute la gestion des erreurs
 [ ] retirer les type ignore
+[ ] est ce que j'ai besoin de tensorflow que j ai rajoute a la main
+[ ] rajouter encoding="utf-8" sur toutes les ouvertures de fichiers json txt py md
