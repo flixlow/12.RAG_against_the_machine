@@ -1,10 +1,10 @@
-from llm_sdk import Small_LLM_Model  # type: ignore
 from src.models import MinimalSearchResults, StudentSearchResults, ChunkData
 from src.errors import AnswerError
 from pydantic import BaseModel
 from src.config import Config
 from pathlib import Path
 from typing import Any
+import dspy  # type: ignore
 import json
 
 
@@ -15,7 +15,8 @@ class Answer(BaseModel):
     def model_post_init(self, _: Any) -> None:
         self._results: StudentSearchResults = self.open()
         self._chunks: list[ChunkData] = self.load()
-        self._llm = Small_LLM_Model(model_name="Qwen/Qwen3-0.6B")
+        self._lm = dspy.LM("Qwen/Qwen3-0.6B")
+        dspy.configure(lm=self._lm)
 
     def open(self) -> StudentSearchResults:
         try:
