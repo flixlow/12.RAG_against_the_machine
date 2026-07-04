@@ -1,4 +1,5 @@
-from src.models import MinimalSearchResults, StudentSearchResults, ChunkData
+from src.models import (MinimalSearchResults, StudentSearchResults,
+                        ChunkData, AnsweredQuestion)
 from src.errors import AnswerError
 from pydantic import BaseModel
 from src.config import Config
@@ -6,6 +7,13 @@ from pathlib import Path
 from typing import Any
 import dspy  # type: ignore
 import json
+from tqdm import tqdm
+
+
+class QA(dspy.Signature):
+    context = dspy.InputField()
+    question = dspy.InputField()
+    answer = dspy.OutputField()
 
 
 class Answer(BaseModel):
@@ -18,6 +26,7 @@ class Answer(BaseModel):
         self._lm = dspy.LM("ollama/qwen3:0.6b",
                            api_base="http://localhost:11434")
         dspy.configure(lm=self._lm)
+        self._predict = dspy.Predict(QA)
 
     def open(self) -> StudentSearchResults:
         try:
@@ -34,7 +43,6 @@ class Answer(BaseModel):
             raise AnswerError from e
 
     def create_context(self, result: MinimalSearchResults) -> str:
-        pass
         context = ""
         for i, source in enumerate(result.retrieved_sources[:3], start=1):
             path = source.file_path
@@ -43,18 +51,37 @@ class Answer(BaseModel):
             try:
                 with open(path) as f:
                     content = f.read()
-                    context += f"source {i}: {Path(path).as_posix()}\n"
-                    context += f"{content[first:last]}\n\n"
+                    context += f"[Source {i}]\n"
+                    context += f"Path: {Path(path).as_posix()}\n"
+                    context += "Content:\n"
+                    context += f"{content[max(0, first):max(0, last)]}\n"
+                    context += "---\n\n"
             except OSError as e:
                 raise AnswerError from e
         return context
 
     def answer(self) -> None:
-        for result in self._results.search_results:
+        answered: list[AnsweredQuestion] = []
+        for result in tqdm(self._results.search_results):
             context = self.create_context(result)
-            context += f"""
-You are a Retrival Augmented Generator
-According to the corpus of texts given before answer this question
-{result.question_str}
-"""
-            # self._llm.encode()
+            ret = self._predict(
+                context=context,
+                question=result.question_str
+            )
+            answered.append(AnsweredQuestion(
+                question_id=result.question_id,
+                question=result.question_str,
+                sources=result.retrieved_sources,
+                answer=ret.answer
+            ))
+        self.save(answered)
+
+    def save(self, answered: list[AnsweredQuestion]) -> None:
+        try:
+            file_str = f"{self.save_directory}/{Path(self.results_path).name}"
+            file = Path(file_str)
+            file.parent.mkdir(exist_ok=True, parents=True)
+            with open(file, 'w') as f:
+                json.dump([a.model_dump() for a in answered], f, indent=4)
+        except OSError as e:
+            raise AnswerError from e

@@ -58,7 +58,8 @@ answer:
 	$(RUN) answer $(ARG)
 
 answer_dataset:
-	$(RUN) answer_dataset
+	uv run -m src answer_dataset data/output/search_results/dataset_docs_public.json
+	uv run -m src answer_dataset data/output/search_results/dataset_code_public.json
 
 evaluate_docs: moulinette
 	./moulinette_pkg/moulinette-ubuntu evaluate_student_search_results $(PUBLIC_DOCS_SEARCH_RESULTS) $(PUBLIC_DOCS_ANSWERED_QUESTIONS)
