@@ -15,7 +15,8 @@ class Answer(BaseModel):
     def model_post_init(self, _: Any) -> None:
         self._results: StudentSearchResults = self.open()
         self._chunks: list[ChunkData] = self.load()
-        self._lm = dspy.LM("Qwen/Qwen3-0.6B")
+        self._lm = dspy.LM("ollama/qwen3:0.6b",
+                           api_base="http://localhost:11434")
         dspy.configure(lm=self._lm)
 
     def open(self) -> StudentSearchResults:

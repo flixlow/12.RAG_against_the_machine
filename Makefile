@@ -12,6 +12,7 @@ run: install index
 
 install: data
 	uv sync
+	@ollama pull qwen3:0.6b
 	@echo "\033[0;32m\n[OK] installation completed ✔\n\033[0m"
 
 debug:
@@ -34,8 +35,8 @@ data: data/.installed
 
 data/.installed: zip/datasets_public.zip zip/vllm-0.10.1.zip
 	mkdir -p data/raw
-	unzip zip/datasets_public.zip -d data
-	unzip zip/vllm-0.10.1.zip -d data/raw
+	unzip zip/datasets_public.zip -d data >/dev/null
+	unzip zip/vllm-0.10.1.zip -d data/raw >/dev/null
 	touch data/.installed
 
 moulinette: moulinette_pkg/.installed

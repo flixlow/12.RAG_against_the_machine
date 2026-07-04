@@ -49,7 +49,7 @@ intuition : répéter 100 fois “chat” n’aide pas 100× plus.
 2) Normalisation par la longueur des documents
 
 Un long document a naturellement plus de mots.
-
+uv run ollama run qwen
 BM25 corrige ça :
 
 un mot dans un petit document “pèse” plus
@@ -79,4 +79,5 @@ make evaluate
 [ ] revoir toute la gestion des erreurs
 [ ] retirer les type ignore
 [ ] est ce que j'ai besoin de tensorflow que j ai rajoute a la main
-[ ] rajouter encoding="utf-8" sur toutes les ouvertures de fichiers json txt py md
+[ ] rajouter encoding="utf-8" sur toutes les ouvertures de fichiers json txt py mduv run ollama run qwen
+[ ] ajouter dans les depedances systeme du projet ollama a avoir avec uv
