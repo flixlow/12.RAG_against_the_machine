@@ -100,3 +100,5 @@ https://ollama.com/library
 on fait des paquets de chunk pour accelerer l embedding car il y a des limites du nombre de requetes http
 
 generation a l ia: embedding et embed batch
+
+parametre sur lesquels on peut jouer, taille des chunks, overlaping,  nombre de chunks pris en contexte, model utilise pour l'embedding

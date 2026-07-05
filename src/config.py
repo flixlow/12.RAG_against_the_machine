@@ -8,7 +8,5 @@ class Config:
     SEARCH_PATH = DATA + OUTPUT + "search_results"
     ANSWER_PATH = DATA + OUTPUT + "search_results_and_answer"
     BM25_PATH = PROCESSED + "bm25_index"
-    DOCS_EM_MODEL = "nomic-embed-text"
-    CODE_EM_MODEL = "embeddinggemma"
     QWEN = "ollama/qwen3:0.6b"
     API_BASE = "http://localhost:11434"

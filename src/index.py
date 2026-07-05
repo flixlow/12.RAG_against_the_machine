@@ -1,6 +1,5 @@
 from langchain_text_splitters import (RecursiveCharacterTextSplitter as RCTS,
                                       Language)
-from chromadb.utils.embedding_functions import OllamaEmbeddingFunction
 from src.models import ChunkData, MinimalSource
 from pydantic import BaseModel, Field
 from tqdm import tqdm  # type: ignore
@@ -23,14 +22,8 @@ class Index(BaseModel):
         self._files: list[Path] = self.listing(self.dir)
         self._client: ClientAPI = chromadb.PersistentClient(
             path=Config.CHROMA_PATH)
-        self._docs_embedding: Any = OllamaEmbeddingFunction(
-            model_name=Config.DOCS_EM_MODEL)
-        self._code_embedding: Any = OllamaEmbeddingFunction(
-            model_name=Config.CODE_EM_MODEL)
-        self._docs_coll: Collection = self._client.get_or_create_collection(
-            "docs", embedding_function=self._docs_embedding)
-        self._code_coll: Collection = self._client.get_or_create_collection(
-            "code", embedding_function=self._docs_embedding)
+        self._docs: Collection = self._client.get_or_create_collection("docs")
+        self._code: Collection = self._client.get_or_create_collection("code")
 
     @staticmethod
     def listing(dir: str) -> list[Path]:
@@ -39,7 +32,7 @@ class Index(BaseModel):
         return [f for f in Path(dir).rglob('*') if f.is_file()]
 
     def open(self) -> None:
-        overlap: int = int(self.chunk_size * 0.05)
+        overlap: int = int(self.chunk_size * 0.15)
         txt_splitter = RCTS(chunk_size=self.chunk_size,
                             chunk_overlap=overlap,
                             add_start_index=True)
@@ -57,11 +50,8 @@ class Index(BaseModel):
             try:
                 if file.suffix in ['.py', '.txt', '.md']:
                     with open(file) as f:
-                        self.chunking(
-                            splitters.get(file.suffix, txt_splitter),
-                            file.as_posix(),
-                            f.read()
-                            )
+                        self.chunking(splitters.get(file.suffix, txt_splitter),
+                                      file.as_posix(), f.read())
             except OSError:
                 print(f"\033[1;38;5;208m[WARNING]\033[0m Can't open {file}.")
                 continue
@@ -96,23 +86,27 @@ class Index(BaseModel):
             raise RagIndexError(f"Can't save chunk to file {file}.") from e
 
     def embedding(self, batch_size: int = 42) -> None:
-        docs_chunks = [(i, c) for i, c in enumerate(self._chunks)
-                       if Path(c.metadata.file_path).suffix != '.py']
-        code_chunks = [(i, c) for i, c in enumerate(self._chunks)
-                       if Path(c.metadata.file_path).suffix == '.py']
+        docs_chunks: list[tuple[int, ChunkData]] = []
+        code_chunks: list[tuple[int, ChunkData]] = []
 
-        self._embed_batch(self._docs_coll, docs_chunks, batch_size)
-        self._embed_batch(self._code_coll, code_chunks, batch_size)
+        for i, chunk in enumerate(self._chunks):
+            if Path(chunk.metadata.file_path).suffix == '.py':
+                code_chunks.append((i, chunk))
+            else:
+                docs_chunks.append((i, chunk))
+
+        self.embed_batch(self._docs, docs_chunks, batch_size)
+        self.embed_batch(self._code, code_chunks, batch_size)
 
     @staticmethod
-    def _embed_batch(collection: Collection,
-                     indexed_chunks: list[tuple[int, ChunkData]],
-                     batch_size: int) -> None:
+    def embed_batch(collection: Collection,
+                    indexed_chunks: list[tuple[int, ChunkData]],
+                    batch_size: int) -> None:
         for start in tqdm(range(0, len(indexed_chunks), batch_size),
                           desc="Embedding: "):
             batch = indexed_chunks[start:start + batch_size]
 
-            collection.upsert(
+            collection.add(
                 ids=[str(i) for i, _ in batch],
                 documents=[c.content for _, c in batch],
                 metadatas=[c.metadata.model_dump() for _, c in batch],
