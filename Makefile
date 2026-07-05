@@ -46,21 +46,21 @@ moulinette_pkg/.installed: zip/moulinette.zip
 	touch moulinette_pkg/.installed
 
 index:
-	$(RUN) index $(ARG)
+	$(RUN) index
 
 search:
 	$(RUN) search $(QUERY)
 
 search_dataset:
-	uv run -m src search_dataset data/datasets_public/public/UnansweredQuestions/dataset_docs_public.json
-	uv run -m src search_dataset data/datasets_public/public/UnansweredQuestions/dataset_code_public.json
+	$(RUN) search_dataset data/datasets_public/public/UnansweredQuestions/dataset_docs_public.json
+	$(RUN) search_dataset data/datasets_public/public/UnansweredQuestions/dataset_code_public.json
 
 answer:
-	$(RUN) answer $(ARG)
+	$(RUN) answer $(QUERY)
 
 answer_dataset:
-	uv run -m src answer_dataset data/output/search_results/dataset_docs_public.json
-	uv run -m src answer_dataset data/output/search_results/dataset_code_public.json
+	$(RUN) answer_dataset data/output/search_results/dataset_docs_public.json
+	$(RUN) answer_dataset data/output/search_results/dataset_code_public.json
 
 evaluate_docs: moulinette
 	./moulinette_pkg/moulinette-ubuntu evaluate_student_search_results $(PUBLIC_DOCS_SEARCH_RESULTS) $(PUBLIC_DOCS_ANSWERED_QUESTIONS)

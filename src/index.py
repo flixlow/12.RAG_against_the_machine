@@ -1,11 +1,15 @@
 from langchain_text_splitters import (RecursiveCharacterTextSplitter as RCTS,
                                       Language)
+from chromadb.utils.embedding_functions import OllamaEmbeddingFunction
 from src.models import ChunkData, MinimalSource
 from pydantic import BaseModel, Field
 from src.errors import RagIndexError
+from typing import Any, Callable
+from chromadb import ClientAPI
+from src.config import Config
 import bm25s  # type: ignore
 from pathlib import Path
-from typing import Any
+import chromadb
 import json
 
 
@@ -16,6 +20,12 @@ class Index(BaseModel):
     def model_post_init(self, _: Any) -> None:
         self._chunks: list[ChunkData] = []
         self._files: list[Path] = self.listing(self.dir)
+        self._client: ClientAPI = chromadb.PersistentClient(
+            path=Config.CHROMA_PATH)
+        self._docs_embedding: Callable = OllamaEmbeddingFunction(
+            model_name=Config.DOCS_EM_MODEL)
+        self._code_embedding: Callable = OllamaEmbeddingFunction(
+            model_name=Config.CODE_EM_MODEL)
 
     @staticmethod
     def listing(dir: str) -> list[Path]:
@@ -70,7 +80,7 @@ class Index(BaseModel):
         if self._chunks == []:
             raise RagIndexError("No data has been processed: "
                                 "please, ensure raw data is available.")
-        file = Path("data/processed/chunks/chunks.json")
+        file = Path(Config.CHUNKS_PATH)
         file.parent.mkdir(exist_ok=True, parents=True)
 
         try:
@@ -86,4 +96,4 @@ class Index(BaseModel):
         corpus_tokens = bm25s.tokenize(corpus)
         retriever = bm25s.BM25(corpus=corpus)
         retriever.index(corpus_tokens, leave_progress=True)
-        retriever.save("data/processed/bm25_index")
+        retriever.save(Config.BM25_PATH)

@@ -1,13 +1,14 @@
 from src.models import (MinimalSearchResults, StudentSearchResults,
-                        ChunkData, AnsweredQuestion)
+                        ChunkData, MinimalAnswer)
+from src.models import StudentSearchResultsAndAnswer as SSRAA
+from tqdm import tqdm  # type: ignore
 from src.errors import AnswerError
 from pydantic import BaseModel
 from src.config import Config
+import dspy  # type: ignore
 from pathlib import Path
 from typing import Any
-import dspy  # type: ignore
 import json
-from tqdm import tqdm
 
 
 class QA(dspy.Signature):
@@ -51,9 +52,6 @@ class Answer(BaseModel):
             try:
                 with open(path) as f:
                     content = f.read()
-                    context += f"[Source {i}]\n"
-                    context += f"Path: {Path(path).as_posix()}\n"
-                    context += "Content:\n"
                     context += f"{content[max(0, first):max(0, last)]}\n"
                     context += "---\n\n"
             except OSError as e:
@@ -61,27 +59,19 @@ class Answer(BaseModel):
         return context
 
     def answer(self) -> None:
-        answered: list[AnsweredQuestion] = []
+        answer: list[MinimalAnswer] = []
         for result in tqdm(self._results.search_results):
             context = self.create_context(result)
-            ret = self._predict(
-                context=context,
-                question=result.question_str
-            )
-            answered.append(AnsweredQuestion(
-                question_id=result.question_id,
-                question=result.question_str,
-                sources=result.retrieved_sources,
-                answer=ret.answer
-            ))
-        self.save(answered)
+            ret = self._predict(context=context, question=result.question_str)
+            answer.append(MinimalAnswer(**result, answer=ret.answer))
+        self.save(SSRAA(search_results=answer, k=self._results.k))
 
-    def save(self, answered: list[AnsweredQuestion]) -> None:
+    def save(self, answer: SSRAA) -> None:
         try:
             file_str = f"{self.save_directory}/{Path(self.results_path).name}"
             file = Path(file_str)
             file.parent.mkdir(exist_ok=True, parents=True)
             with open(file, 'w') as f:
-                json.dump([a.model_dump() for a in answered], f, indent=4)
+                json.dump(answer.model_dump(), f, indent=4)
         except OSError as e:
             raise AnswerError from e

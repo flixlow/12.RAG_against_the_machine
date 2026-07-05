@@ -11,6 +11,10 @@
 - Pathlib (rglob): https://docs.python.org/3/library/pathlib.html
 - bm25s doc: https://bm25s.github.io/
 - tqdm doc: https://tqdm.github.io/
+- dspy doc: 
+- ollama doc:
+- chromadb: https://docs.trychroma.com/docs
+- Vector embeddings are numerical representations derived from machine learning models, encapsulating the semantic meaning of unstructured data: https://milvus.io/intro
 
 - transformers
 - dspy
@@ -56,6 +60,12 @@ un mot dans un petit document “pèse” plus
 un mot dans un long document est pénalisé
 
 
+Cosine similarity (la plus courante)
+Elle regarde l’angle entre deux vecteurs : 
+- si les vecteurs pointent dans la même direction → très similaires
+- si ils sont orthogonaux → pas liés
+- si ils sont opposés → très différent
+
 1. Ingest the vLLM repository (provided as attachment) and create a searchable
 knowledge base
 2. Search this knowledge base to find relevant code snippets and documentation for
@@ -81,3 +91,8 @@ make evaluate
 [ ] est ce que j'ai besoin de tensorflow que j ai rajoute a la main
 [ ] rajouter encoding="utf-8" sur toutes les ouvertures de fichiers json txt py mduv run ollama run qwen
 [ ] ajouter dans les depedances systeme du projet ollama a avoir avec uv
+
+choisir le bon modele d'embedding : comment savoir quoi choisir comme modele pour de l embedding : self._embedding_function: Callable = OllamaEmbeddingFunction(model_name=)
+https://ollama.com/library
+
+![alt text](embedding.png)
