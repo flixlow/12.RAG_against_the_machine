@@ -24,8 +24,7 @@ class Answer(BaseModel):
     def model_post_init(self, _: Any) -> None:
         self._results: StudentSearchResults = self.open()
         self._chunks: list[ChunkData] = self.load()
-        self._lm = dspy.LM("ollama/qwen3:0.6b",
-                           api_base="http://localhost:11434")
+        self._lm = dspy.LM(Config.QWEN, api_base=Config.API_BASE)
         dspy.configure(lm=self._lm)
         self._predict = dspy.Predict(QA)
 
@@ -38,7 +37,7 @@ class Answer(BaseModel):
 
     def load(self) -> list[ChunkData]:
         try:
-            with open(Config.CHUNKS) as f:
+            with open(Config.CHUNKS_PATH) as f:
                 return [ChunkData(**c) for c in json.load(f)]
         except (OSError, json.JSONDecodeError) as e:
             raise AnswerError from e

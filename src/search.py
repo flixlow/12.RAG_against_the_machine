@@ -1,12 +1,13 @@
 from src.models import UnansweredQuestion, MinimalSearchResults
 from src.models import MinimalSource, StudentSearchResults
+from tqdm import tqdm  # type: ignore
 from src.errors import SearchError
+from src.config import Config
 from pydantic import BaseModel
 import bm25s  # type: ignore
 from pathlib import Path
 from bm25s import BM25
 from typing import Any
-from tqdm import tqdm
 import json
 
 
@@ -21,16 +22,14 @@ class Search(BaseModel):
 
         try:
             self._retriever: BM25 = bm25s.BM25.load(
-                "data/processed/bm25_index",
-                load_corpus=True
-                )
+                Config.BM25_PATH, load_corpus=True)
         except OSError as e:
             raise SearchError("BM25 index not found or corrupted. "
                               "Please build the index first: make index"
                               ) from e
 
         try:
-            with open("data/processed/chunks/chunks.json") as f:
+            with open(Config.CHUNKS_PATH) as f:
                 self._splitted: list[dict[str, Any]] = json.load(f)
         except (OSError, json.JSONDecodeError) as e:
             raise SearchError from e
@@ -46,12 +45,8 @@ class Search(BaseModel):
         query_tokens = bm25s.tokenize(query.question)
         sources: list[MinimalSource] = []
 
-        docs = self._retriever.retrieve(
-            query_tokens,
-            k=self.k,
-            sorted=True,
-            return_as="documents"
-            )
+        docs = self._retriever.retrieve(query_tokens, k=self.k, sorted=True,
+                                        return_as="documents")
 
         for doc in docs[0]:
             id = doc["id"]

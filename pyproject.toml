@@ -10,6 +10,7 @@ dependencies = [
     "dspy>=3.2.1",
     "fire>=0.7.1",
     "langchain-text-splitters>=1.1.2",
+    "mypy>=2.1.0",
     "ollama>=0.6.2",
     "pathlib>=1.0.1",
     "pydantic>=2.13.4",
