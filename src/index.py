@@ -10,20 +10,23 @@ import bm25s  # type: ignore
 from pathlib import Path
 from typing import Any
 import chromadb
+import shutil
 import json
 
 
 class Index(BaseModel):
     dir: str
     chunk_size: int = Field(gt=0, le=2000)
+    emb_flag: bool = Field(default=False)
 
     def model_post_init(self, _: Any) -> None:
         self._chunks: list[ChunkData] = []
         self._files: list[Path] = self.listing(self.dir)
-        self._client: ClientAPI = chromadb.PersistentClient(
-            path=Config.CHROMA_PATH)
-        self._docs: Collection = self._client.get_or_create_collection("docs")
-        self._code: Collection = self._client.get_or_create_collection("code")
+        if self.emb_flag:
+            if Path(Config.CHROMA_PATH).exists():
+                shutil.rmtree(Config.CHROMA_PATH)
+            cli: ClientAPI = chromadb.PersistentClient(path=Config.CHROMA_PATH)
+            self._collection: Collection = cli.get_or_create_collection("coll")
 
     @staticmethod
     def listing(dir: str) -> list[Path]:
@@ -85,32 +88,15 @@ class Index(BaseModel):
         except OSError as e:
             raise RagIndexError(f"Can't save chunk to file {file}.") from e
 
-    def embedding(self, batch_size: int = 42) -> None:
-        docs_chunks: list[tuple[int, ChunkData]] = []
-        code_chunks: list[tuple[int, ChunkData]] = []
+    def embedding(self, size: int = 42) -> None:
+        chunks = self._chunks
+        ids = [str(i) for i in range(len(chunks))]
+        docs = [c.content for c in chunks]
 
-        for i, chunk in enumerate(self._chunks):
-            if Path(chunk.metadata.file_path).suffix == '.py':
-                code_chunks.append((i, chunk))
-            else:
-                docs_chunks.append((i, chunk))
-
-        self.embed_batch(self._docs, docs_chunks, batch_size)
-        self.embed_batch(self._code, code_chunks, batch_size)
-
-    @staticmethod
-    def embed_batch(collection: Collection,
-                    indexed_chunks: list[tuple[int, ChunkData]],
-                    batch_size: int) -> None:
-        for start in tqdm(range(0, len(indexed_chunks), batch_size),
-                          desc="Embedding: "):
-            batch = indexed_chunks[start:start + batch_size]
-
-            collection.add(
-                ids=[str(i) for i, _ in batch],
-                documents=[c.content for _, c in batch],
-                metadatas=[c.metadata.model_dump() for _, c in batch],
-            )
+        for start in tqdm(range(0, len(chunks), size), desc="Embedding: "):
+            end = start + size
+            self._collection.add(ids=ids[start:end],
+                                 documents=docs[start:end])
 
     def index(self) -> None:
         corpus = [chunk.content for chunk in self._chunks]
@@ -118,4 +104,6 @@ class Index(BaseModel):
         corpus_tokens = bm25s.tokenize(corpus)
         retriever = bm25s.BM25(corpus=corpus)
         retriever.index(corpus_tokens, leave_progress=True)
+        if Path(Config.BM25_PATH).exists():
+            shutil.rmtree(Config.BM25_PATH)
         retriever.save(Config.BM25_PATH)

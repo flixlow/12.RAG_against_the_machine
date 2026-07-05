@@ -12,39 +12,33 @@ import os
 
 class Rag:
     def index(self, dir: str = Config.RAW,
-              max_chunk_size: int = 2000) -> None:
+              max_chunk_size: int = 2000, embedding: bool = False) -> None:
         start = time.time()
-        index = Index(dir=dir, chunk_size=max_chunk_size)
+        index = Index(dir=dir, chunk_size=max_chunk_size, emb_flag=embedding)
         index.open()
         index.save()
         index.index()
-        index.embedding()
+        if embedding:
+            index.embedding()
         print(f"\n\033[34mIngestion complete in {time.time() - start:.3f}s!")
         print(f"\033[0;1mIndices saved under {Config.PROCESSED}")
 
     def search(self, query: str | None = None, k: int = 5,
-               save_directory: str = Config.SEARCH_PATH) -> None:
+               save_directory: str = Config.SEARCH_PATH,
+               hybrid: bool = False) -> None:
         if query is not None:
             single = UnansweredQuestion(question=query)
         else:
             raise InputSingleQueryError
-
-        searcher = Search(
-            rag_questions=[single],
-            k=k,
-            save_dir=save_directory,
-            file="single_query.json"
-            )
+        searcher = Search(rag_questions=[single], k=k, save_dir=save_directory,
+                          file=Config.SIGLE_QUERY, hybrid=hybrid)
         searcher.search_dataset()
 
-    def search_dataset(self,
-                       dataset_path: str,
-                       k: int = 5,
-                       save_directory: str = Config.SEARCH_PATH
-                       ) -> None:
+    def search_dataset(self, dataset_path: str, k: int = 5,
+                       save_directory: str = Config.SEARCH_PATH,
+                       hybrid: bool = False) -> None:
         if not Path(dataset_path).exists():
             raise SearchError(f"invalid dataset_path: {dataset_path}")
-
         try:
             with open(dataset_path) as f:
                 content = f.read()
@@ -53,24 +47,16 @@ class Rag:
             raise SearchError(f"can't loading content from {dataset_path}")
         except json.JSONDecodeError as e:
             raise SearchError from e
-
-        searcher = Search(
-            **questions,
-            k=k,
-            save_dir=save_directory,
-            file=os.path.basename(dataset_path)
-            )
+        searcher = Search(**questions, k=k, save_dir=save_directory,
+                          file=os.path.basename(dataset_path), hybrid=hybrid)
         searcher.search_dataset()
 
     def answer(self, query: str | None = None, k: int = 5,
                save_directory: str = Config.ANSWER_PATH) -> None:
         pass
 
-    def answer_dataset(
-            self,
-            student_search_results_path: str,
-            save_directory: str = Config.ANSWER_PATH
-            ) -> None:
+    def answer_dataset(self, student_search_results_path: str,
+                       save_directory: str = Config.ANSWER_PATH) -> None:
         provider = Answer(results_path=student_search_results_path,
                           save_directory=save_directory)
         provider.answer()
