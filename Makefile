@@ -10,9 +10,11 @@ PUBLIC_CODE_SEARCH_RESULTS := data/output/search_results/dataset_code_public.jso
 
 run: install index
 
-install: data
+install: data Makefile
 	uv sync
-	@ollama pull qwen3:0.6b
+	ollama pull qwen3:0.6b
+	ollama pull nomic-embed-text
+	ollama pull embeddinggemma
 	@echo "\033[0;32m\n[OK] installation completed ✔\n\033[0m"
 
 debug:

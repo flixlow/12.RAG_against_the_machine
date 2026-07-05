@@ -3,12 +3,13 @@ from langchain_text_splitters import (RecursiveCharacterTextSplitter as RCTS,
 from chromadb.utils.embedding_functions import OllamaEmbeddingFunction
 from src.models import ChunkData, MinimalSource
 from pydantic import BaseModel, Field
+from tqdm import tqdm  # type: ignore
 from src.errors import RagIndexError
-from typing import Any, Callable
-from chromadb import ClientAPI
+from chromadb import ClientAPI, Collection
 from src.config import Config
 import bm25s  # type: ignore
 from pathlib import Path
+from typing import Any
 import chromadb
 import json
 
@@ -22,10 +23,14 @@ class Index(BaseModel):
         self._files: list[Path] = self.listing(self.dir)
         self._client: ClientAPI = chromadb.PersistentClient(
             path=Config.CHROMA_PATH)
-        self._docs_embedding: Callable = OllamaEmbeddingFunction(
+        self._docs_embedding: Any = OllamaEmbeddingFunction(
             model_name=Config.DOCS_EM_MODEL)
-        self._code_embedding: Callable = OllamaEmbeddingFunction(
+        self._code_embedding: Any = OllamaEmbeddingFunction(
             model_name=Config.CODE_EM_MODEL)
+        self._docs_coll: Collection = self._client.get_or_create_collection(
+            "docs", embedding_function=self._docs_embedding)
+        self._code_coll: Collection = self._client.get_or_create_collection(
+            "code", embedding_function=self._docs_embedding)
 
     @staticmethod
     def listing(dir: str) -> list[Path]:
@@ -48,7 +53,7 @@ class Index(BaseModel):
                                          add_start_index=True)
         splitters = {".py": py_splitter, ".md": md_splitter}
 
-        for file in self._files:
+        for file in tqdm(self._files, desc="chunking"):
             try:
                 if file.suffix in ['.py', '.txt', '.md']:
                     with open(file) as f:
@@ -89,6 +94,29 @@ class Index(BaseModel):
                 json.dump(chunks, f, ensure_ascii=False, indent=4)
         except OSError as e:
             raise RagIndexError(f"Can't save chunk to file {file}.") from e
+
+    def embedding(self, batch_size: int = 42) -> None:
+        docs_chunks = [(i, c) for i, c in enumerate(self._chunks)
+                       if Path(c.metadata.file_path).suffix != '.py']
+        code_chunks = [(i, c) for i, c in enumerate(self._chunks)
+                       if Path(c.metadata.file_path).suffix == '.py']
+
+        self._embed_batch(self._docs_coll, docs_chunks, batch_size)
+        self._embed_batch(self._code_coll, code_chunks, batch_size)
+
+    @staticmethod
+    def _embed_batch(collection: Collection,
+                     indexed_chunks: list[tuple[int, ChunkData]],
+                     batch_size: int) -> None:
+        for start in tqdm(range(0, len(indexed_chunks), batch_size),
+                          desc="Embedding: "):
+            batch = indexed_chunks[start:start + batch_size]
+
+            collection.upsert(
+                ids=[str(i) for i, _ in batch],
+                documents=[c.content for _, c in batch],
+                metadatas=[c.metadata.model_dump() for _, c in batch],
+            )
 
     def index(self) -> None:
         corpus = [chunk.content for chunk in self._chunks]

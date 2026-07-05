@@ -30,7 +30,7 @@ class Search(BaseModel):
 
         try:
             with open(Config.CHUNKS_PATH) as f:
-                self._splitted: list[dict[str, Any]] = json.load(f)
+                self._chunks: list[dict[str, Any]] = json.load(f)
         except (OSError, json.JSONDecodeError) as e:
             raise SearchError from e
 
@@ -50,7 +50,7 @@ class Search(BaseModel):
 
         for doc in docs[0]:
             id = doc["id"]
-            metadata = self._splitted[id]["metadata"]
+            metadata = self._chunks[id]["metadata"]
             sources.append(MinimalSource(**metadata))
 
         return MinimalSearchResults(

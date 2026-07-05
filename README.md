@@ -96,3 +96,7 @@ choisir le bon modele d'embedding : comment savoir quoi choisir comme modele pou
 https://ollama.com/library
 
 ![alt text](embedding.png)
+
+on fait des paquets de chunk pour accelerer l embedding car il y a des limites du nombre de requetes http
+
+generation a l ia: embedding et embed batch

@@ -18,6 +18,7 @@ class Rag:
         index.open()
         index.save()
         index.index()
+        index.embedding()
         print(f"\n\033[34mIngestion complete in {time.time() - start:.3f}s!")
         print(f"\033[0;1mIndices saved under {Config.PROCESSED}")
 
