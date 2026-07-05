@@ -52,7 +52,8 @@ search:
 	$(RUN) search $(QUERY)
 
 search_dataset:
-	$(RUN) search_dataset $(ARG)
+	uv run -m src search_dataset data/datasets_public/public/UnansweredQuestions/dataset_docs_public.json
+	uv run -m src search_dataset data/datasets_public/public/UnansweredQuestions/dataset_code_public.json
 
 answer:
 	$(RUN) answer $(ARG)

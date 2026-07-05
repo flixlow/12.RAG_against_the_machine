@@ -6,6 +6,7 @@ import bm25s  # type: ignore
 from pathlib import Path
 from bm25s import BM25
 from typing import Any
+from tqdm import tqdm
 import json
 
 
@@ -35,7 +36,7 @@ class Search(BaseModel):
             raise SearchError from e
 
     def search_dataset(self) -> None:
-        for query in self.rag_questions:
+        for query in tqdm(self.rag_questions):
             search_result = self.search(query)
             self._results.append(search_result)
 
