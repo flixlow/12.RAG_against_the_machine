@@ -101,5 +101,8 @@ on fait des paquets de chunk pour accelerer l embedding car il y a des limites d
 
 generation a l ia: embedding et embed batch
 
-parametre sur lesquels on peut jouer, taille des chunks, overlaping,  nombre de chunks pris en contexte, model utilise pour l'embedding
+parametre sur lesquels on peut jouer, taille des chunks, overlaping,  nombre de chunks pris en contexte, model utilise pour l'embedding, hybrid normaliser les vecteurs entre bm25 et chromadb au lieu de rrf
+
 completer .PHONY
+
+Dans le Reciprocal Rank Fusion (RRF), le k est un paramètre de lissage qui contrôle l’importance du rang dans le score.

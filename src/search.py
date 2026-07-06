@@ -1,6 +1,7 @@
 from src.models import UnansweredQuestion, MinimalSearchResults
 from src.models import MinimalSource, StudentSearchResults
 from tqdm import tqdm  # type: ignore
+from collections import defaultdict
 from src.errors import SearchError
 from chromadb import Collection
 from pydantic import BaseModel
@@ -50,27 +51,43 @@ class Search(BaseModel):
         self.save()
 
     def search_chroma(self, query: str) -> list[int]:
-        return []
+        results = self._collection.query(query_texts=[query], n_results=self.k)
+        return [int(id) for id in results['ids'][0]]
 
-    def hybrid_retrieve(self, bm25_results: list[int],
-                        chroma_results: list[int]) -> None:
-        pass
+    def reciprocal_rank_fusion(self, bm25_results: list[int],
+                               chroma_results: list[int]) -> list[int]:
+        scores: dict[int, float] = defaultdict(float)
+        k = 60
 
-    def search_bm25(self, query: UnansweredQuestion) -> list[int]:
-        query_tokens = bm25s.tokenize(query.question)
+        for rank, id in enumerate(bm25_results):
+            scores[id] += 1 / (k + rank)
+        for rank, id in enumerate(chroma_results):
+            scores[id] += 1 / (k + rank)
+
+        ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+
+        return [id for id, _ in ranked[:self.k]]
+
+    def search_bm25(self, query: str) -> list[int]:
+        query_tokens = bm25s.tokenize(query)
         docs = self._retriever.retrieve(query_tokens, k=self.k,
                                         sorted=True, return_as="documents")
         return [doc['id'] for doc in docs[0]]
 
     def search(self, query: UnansweredQuestion) -> MinimalSearchResults:
+        ids: list[int] = []
         sources: list[MinimalSource] = []
 
-        bm25_results = self.search_bm25(query)
-        if self.hybrid:
+        if not self.hybrid:
+            ids = self.search_bm25(query.question)
+        else:
+            bm25_results = self.search_bm25(query.question)
             chroma_results = self.search_chroma(query.question)
-            self.hybrid_retrieve(bm25_results, chroma_results)
-        # metadata = self._chunks[id]["metadata"]
-        # sources.append(MinimalSource(**metadata))
+            ids = self.reciprocal_rank_fusion(bm25_results, chroma_results)
+
+        for id in ids:
+            metadata = self._chunks[id]["metadata"]
+            sources.append(MinimalSource(**metadata))
 
         return MinimalSearchResults(question_id=query.question_id,
                                     question_str=query.question,
