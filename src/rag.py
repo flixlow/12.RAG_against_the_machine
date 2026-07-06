@@ -21,7 +21,7 @@ class Rag:
         if embedding:
             index.embedding()
         print(f"\n\033[34mIngestion complete in {time.time() - start:.3f}s!")
-        print(f"\033[0;1mIndices saved under {Config.PROCESSED}")
+        print(f"\033[0;1mIndices saved under {Config.PROCESSED}\033[0m")
 
     def search(self, query: str | None = None, k: int = 5,
                save_directory: str = Config.SEARCH_PATH,

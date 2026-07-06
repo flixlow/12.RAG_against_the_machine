@@ -35,7 +35,7 @@ class Index(BaseModel):
         return [f for f in Path(dir).rglob('*') if f.is_file()]
 
     def open(self) -> None:
-        overlap: int = int(self.chunk_size * 0.15)
+        overlap: int = int(self.chunk_size * 0.02)
         txt_splitter = RCTS(chunk_size=self.chunk_size,
                             chunk_overlap=overlap,
                             add_start_index=True)
@@ -60,6 +60,8 @@ class Index(BaseModel):
                 continue
 
     def chunking(self, splitter: RCTS, file: str, content: str) -> None:
+        # clean_file = file.replace('/', ' ').replace('_', ' ')
+        # chunks = splitter.create_documents([clean_file*5 + '\n' + content])
         chunks = splitter.create_documents([content])
 
         for chunk in chunks:
@@ -107,3 +109,4 @@ class Index(BaseModel):
         if Path(Config.BM25_PATH).exists():
             shutil.rmtree(Config.BM25_PATH)
         retriever.save(Config.BM25_PATH)
+        print(len(self._chunks))

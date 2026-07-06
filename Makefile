@@ -46,7 +46,7 @@ moulinette_pkg/.installed: zip/moulinette.zip
 	touch moulinette_pkg/.installed
 
 index:
-	$(RUN) index
+	$(RUN) index $(ARG)
 
 search:
 	$(RUN) search $(QUERY)
@@ -59,8 +59,8 @@ answer:
 	$(RUN) answer $(QUERY)
 
 answer_dataset:
-	$(RUN) answer_dataset data/output/search_results/dataset_docs_public.json
-	$(RUN) answer_dataset data/output/search_results/dataset_code_public.json
+	$(RUN) answer_dataset data/output/search_results/dataset_docs_public.json $(ARG)
+	$(RUN) answer_dataset data/output/search_results/dataset_code_public.json $(ARG)
 
 evaluate_docs: moulinette
 	./moulinette_pkg/moulinette-ubuntu evaluate_student_search_results $(PUBLIC_DOCS_SEARCH_RESULTS) $(PUBLIC_DOCS_ANSWERED_QUESTIONS)

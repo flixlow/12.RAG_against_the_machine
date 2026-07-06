@@ -18,7 +18,12 @@ import json
 class QA(dspy.Signature):
     query: str = dspy.InputField()
     expanded_query: str = dspy.OutputField(
-        desc="""original query plus synonyms to main subjects""")
+        desc="Space-separated keywords for BM25 retrieval, in [LANGUE]. "
+        "Include the key terms from the original query, then add relevant "
+        "synonyms, related terms, and acronym expansions. "
+        "Keep multi-word named entities or technical terms intact. "
+        "No full sentences, no stopwords, no punctuation, no special symbols. "
+        "Aim for 8-15 keywords total, avoid near-duplicate variants.")
 
 
 class Search(BaseModel):
@@ -47,7 +52,7 @@ class Search(BaseModel):
             if self.hybrid:
                 client = chromadb.PersistentClient(Config.CHROMA_PATH)
                 self._collection: Collection = client.get_collection("coll")
-        except ValueError:
+        except chromadb.errors.NotFoundError:
             raise SearchError("collection from embedding does not exist, "
                               "please run index --embedding first.")
         if self.expansion:
@@ -56,7 +61,9 @@ class Search(BaseModel):
             self._predict = dspy.Predict(QA)
 
     def expand_query(self, query: str) -> str:
+        print("before", query)
         result = self._predict(query=query)
+        print("after", result.expanded_query)
         return result.expanded_query
 
     def reciprocal_rank_fusion(self, bm25_results: list[int],
@@ -73,13 +80,13 @@ class Search(BaseModel):
 
         return [id for id, _ in ranked[:self.k]]
 
-    def search_chroma(self, query: str) -> list[int]:
-        results = self._collection.query(query_texts=[query], n_results=self.k)
+    def search_chroma(self, query: str, k: int) -> list[int]:
+        results = self._collection.query(query_texts=[query], n_results=k)
         return [int(id) for id in results['ids'][0]]
 
-    def search_bm25(self, query: str) -> list[int]:
+    def search_bm25(self, query: str, k: int) -> list[int]:
         query_tokens = bm25s.tokenize(query)
-        docs = self._retriever.retrieve(query_tokens, k=self.k,
+        docs = self._retriever.retrieve(query_tokens, k=k,
                                         sorted=True, return_as="documents")
         return [doc['id'] for doc in docs[0]]
 
@@ -91,12 +98,13 @@ class Search(BaseModel):
             else unanswerer.question
 
         if not self.hybrid:
-            ids = self.search_bm25(query)
+            ids = self.search_bm25(query, self.k)
         else:
-            bm25_results = self.search_bm25(query)
-            chroma_results = self.search_chroma(query)
+            bm25_results = self.search_bm25(query, 20)
+            chroma_results = self.search_chroma(query, 20)
             ids = self.reciprocal_rank_fusion(bm25_results, chroma_results)
 
+        print(ids)
         for id in ids:
             metadata = self._chunks[id]["metadata"]
             sources.append(MinimalSource(**metadata))
@@ -106,7 +114,8 @@ class Search(BaseModel):
                                     retrieved_sources=sources)
 
     def search_dataset(self) -> None:
-        for query in tqdm(self.rag_questions):
+        # for query in tqdm(self.rag_questions):
+        for query in self.rag_questions:
             search_result = self.search(query)
             self._results.append(search_result)
 
