@@ -12,10 +12,10 @@ import json
 
 
 class QA(dspy.Signature):
-    context = dspy.InputField("retieved documents used to answer the question")
+    context = dspy.InputField(desc="retieved sources used to answer question")
     question = dspy.InputField()
     answer = dspy.OutputField(desc="""
-    Answer using only the provided context.
+    Answer using only the provided context
 
     Requirements:
     - Grounded in sources (no hallucinations)
@@ -24,7 +24,7 @@ class QA(dspy.Signature):
     - Include source references when possible
 
     If context is insufficient:
-    say 'not enough information int the provided context'""")
+    say 'not enough information in the provided context'""")
 
 
 class Answer(BaseModel):
@@ -34,7 +34,7 @@ class Answer(BaseModel):
     def model_post_init(self, _: Any) -> None:
         self._results: StudentSearchResults = self.open()
         self._chunks: list[ChunkData] = self.load()
-        lm = dspy.LM(Config.QWEN, api_base=Config.API_BASE)
+        lm = dspy.LM(Config.MODEL, api_base=Config.API_BASE)
         dspy.configure(lm=lm)
         self._predict = dspy.Predict(QA)
 
@@ -74,7 +74,8 @@ class Answer(BaseModel):
 
             ret = self._predict(context=context, question=result.question_str)
 
-            answer.append(MinimalAnswer(**result, answer=ret.answer))
+            answer.append(
+                MinimalAnswer(**result.model_dump(), answer=ret.answer))
         self.save(SSRAA(search_results=answer, k=self._results.k))
 
     def save(self, answer: SSRAA) -> None:

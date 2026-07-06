@@ -16,13 +16,9 @@ import json
 
 
 class QA(dspy.Signature):
-    """Expand this search query with relevant synonyms and\n
- related keywords for a BM25 + vector search engine.
- Keep the original intent.
- Return only the expanded query, one line, no explanations."""
-
     query: str = dspy.InputField()
-    expanded_query: str = dspy.OutputField()
+    expanded_query: str = dspy.OutputField(
+        desc="""original query plus synonyms to main subjects""")
 
 
 class Search(BaseModel):
@@ -54,12 +50,13 @@ class Search(BaseModel):
         except ValueError:
             raise SearchError("collection from embedding does not exist, "
                               "please run index --embedding first.")
+        if self.expansion:
+            lm = dspy.LM(Config.MODEL, api_base=Config.API_BASE)
+            dspy.configure(lm=lm)
+            self._predict = dspy.Predict(QA)
 
     def expand_query(self, query: str) -> str:
-        lm = dspy.LM(Config.QWEN, api_base=Config.API_BASE)
-        dspy.configure(lm=lm)
-        predict = dspy.Predict(QA)
-        result = predict(query=query)
+        result = self._predict(query=query)
         return result.expanded_query
 
     def reciprocal_rank_fusion(self, bm25_results: list[int],

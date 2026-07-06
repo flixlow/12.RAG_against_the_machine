@@ -12,7 +12,7 @@ run: install index
 
 install: data Makefile
 	uv sync
-# 	ollama pull qwen3:0.6b
+	ollama pull qwen3:0.6b
 	@echo "\033[0;32m\n[OK] installation completed ✔\n\033[0m"
 
 debug:
@@ -52,8 +52,8 @@ search:
 	$(RUN) search $(QUERY)
 
 search_dataset:
-	$(RUN) search_dataset data/datasets_public/public/UnansweredQuestions/dataset_docs_public.json
-	$(RUN) search_dataset data/datasets_public/public/UnansweredQuestions/dataset_code_public.json
+	$(RUN) search_dataset data/datasets_public/public/UnansweredQuestions/dataset_docs_public.json $(ARG)
+	$(RUN) search_dataset data/datasets_public/public/UnansweredQuestions/dataset_code_public.json $(ARG)
 
 answer:
 	$(RUN) answer $(QUERY)
