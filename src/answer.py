@@ -12,9 +12,19 @@ import json
 
 
 class QA(dspy.Signature):
-    context = dspy.InputField()
+    context = dspy.InputField("retieved documents used to answer the question")
     question = dspy.InputField()
-    answer = dspy.OutputField()
+    answer = dspy.OutputField(desc="""
+    Answer using only the provided context.
+
+    Requirements:
+    - Grounded in sources (no hallucinations)
+    - Clear and self-contained
+    - Directly answers the question
+    - Include source references when possible
+
+    If context is insufficient:
+    say 'not enough information int the provided context'""")
 
 
 class Answer(BaseModel):
