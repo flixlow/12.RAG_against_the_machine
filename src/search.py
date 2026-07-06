@@ -7,11 +7,22 @@ from chromadb import Collection
 from pydantic import BaseModel
 from src.config import Config
 import bm25s  # type: ignore
+import dspy  # type: ignore
 from pathlib import Path
 from bm25s import BM25
 from typing import Any
 import chromadb
 import json
+
+
+class QA(dspy.Signature):
+    """Expand this search query with relevant synonyms and\n
+ related keywords for a BM25 + vector search engine.
+ Keep the original intent.
+ Return only the expanded query, one line, no explanations."""
+
+    query: str = dspy.InputField()
+    expanded_query: str = dspy.OutputField()
 
 
 class Search(BaseModel):
@@ -20,6 +31,7 @@ class Search(BaseModel):
     save_dir: str
     file: str
     hybrid: bool
+    expansion: bool
 
     def model_post_init(self, _: Any) -> None:
         self._results: list[MinimalSearchResults] = []
@@ -43,16 +55,12 @@ class Search(BaseModel):
             raise SearchError("collection from embedding does not exist, "
                               "please run index --embedding first.")
 
-    def search_dataset(self) -> None:
-        for query in tqdm(self.rag_questions):
-            search_result = self.search(query)
-            self._results.append(search_result)
-
-        self.save()
-
-    def search_chroma(self, query: str) -> list[int]:
-        results = self._collection.query(query_texts=[query], n_results=self.k)
-        return [int(id) for id in results['ids'][0]]
+    def expand_query(self, query: str) -> str:
+        lm = dspy.LM(Config.QWEN, api_base=Config.API_BASE)
+        dspy.configure(lm=lm)
+        predict = dspy.Predict(QA)
+        result = predict(query=query)
+        return result.expanded_query
 
     def reciprocal_rank_fusion(self, bm25_results: list[int],
                                chroma_results: list[int]) -> list[int]:
@@ -68,30 +76,44 @@ class Search(BaseModel):
 
         return [id for id, _ in ranked[:self.k]]
 
+    def search_chroma(self, query: str) -> list[int]:
+        results = self._collection.query(query_texts=[query], n_results=self.k)
+        return [int(id) for id in results['ids'][0]]
+
     def search_bm25(self, query: str) -> list[int]:
         query_tokens = bm25s.tokenize(query)
         docs = self._retriever.retrieve(query_tokens, k=self.k,
                                         sorted=True, return_as="documents")
         return [doc['id'] for doc in docs[0]]
 
-    def search(self, query: UnansweredQuestion) -> MinimalSearchResults:
+    def search(self, unanswerer: UnansweredQuestion) -> MinimalSearchResults:
         ids: list[int] = []
         sources: list[MinimalSource] = []
 
+        query = self.expand_query(unanswerer.question) if self.expansion \
+            else unanswerer.question
+
         if not self.hybrid:
-            ids = self.search_bm25(query.question)
+            ids = self.search_bm25(query)
         else:
-            bm25_results = self.search_bm25(query.question)
-            chroma_results = self.search_chroma(query.question)
+            bm25_results = self.search_bm25(query)
+            chroma_results = self.search_chroma(query)
             ids = self.reciprocal_rank_fusion(bm25_results, chroma_results)
 
         for id in ids:
             metadata = self._chunks[id]["metadata"]
             sources.append(MinimalSource(**metadata))
 
-        return MinimalSearchResults(question_id=query.question_id,
-                                    question_str=query.question,
+        return MinimalSearchResults(question_id=unanswerer.question_id,
+                                    question_str=unanswerer.question,
                                     retrieved_sources=sources)
+
+    def search_dataset(self) -> None:
+        for query in tqdm(self.rag_questions):
+            search_result = self.search(query)
+            self._results.append(search_result)
+
+        self.save()
 
     def save(self) -> None:
         output = StudentSearchResults(search_results=self._results, k=self.k)

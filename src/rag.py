@@ -25,18 +25,19 @@ class Rag:
 
     def search(self, query: str | None = None, k: int = 5,
                save_directory: str = Config.SEARCH_PATH,
-               hybrid: bool = False) -> None:
+               hybrid: bool = False, expansion: bool = False) -> None:
         if query is not None:
             single = UnansweredQuestion(question=query)
         else:
             raise InputSingleQueryError
         searcher = Search(rag_questions=[single], k=k, save_dir=save_directory,
-                          file=Config.SIGLE_QUERY, hybrid=hybrid)
+                          file=Config.SIGLE_QUERY,
+                          hybrid=hybrid, expansion=expansion)
         searcher.search_dataset()
 
     def search_dataset(self, dataset_path: str, k: int = 5,
                        save_directory: str = Config.SEARCH_PATH,
-                       hybrid: bool = False) -> None:
+                       hybrid: bool = False, expansion: bool = False) -> None:
         if not Path(dataset_path).exists():
             raise SearchError(f"invalid dataset_path: {dataset_path}")
         try:
@@ -48,7 +49,8 @@ class Rag:
         except json.JSONDecodeError as e:
             raise SearchError from e
         searcher = Search(**questions, k=k, save_dir=save_directory,
-                          file=os.path.basename(dataset_path), hybrid=hybrid)
+                          file=os.path.basename(dataset_path),
+                          hybrid=hybrid, expansion=expansion)
         searcher.search_dataset()
 
     def answer(self, query: str | None = None, k: int = 5,

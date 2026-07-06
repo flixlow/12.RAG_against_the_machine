@@ -34,8 +34,8 @@ class Answer(BaseModel):
     def model_post_init(self, _: Any) -> None:
         self._results: StudentSearchResults = self.open()
         self._chunks: list[ChunkData] = self.load()
-        self._lm = dspy.LM(Config.QWEN, api_base=Config.API_BASE)
-        dspy.configure(lm=self._lm)
+        lm = dspy.LM(Config.QWEN, api_base=Config.API_BASE)
+        dspy.configure(lm=lm)
         self._predict = dspy.Predict(QA)
 
     def open(self) -> StudentSearchResults:
@@ -71,7 +71,9 @@ class Answer(BaseModel):
         answer: list[MinimalAnswer] = []
         for result in tqdm(self._results.search_results):
             context = self.create_context(result)
+
             ret = self._predict(context=context, question=result.question_str)
+
             answer.append(MinimalAnswer(**result, answer=ret.answer))
         self.save(SSRAA(search_results=answer, k=self._results.k))
 

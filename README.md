@@ -106,3 +106,5 @@ parametre sur lesquels on peut jouer, taille des chunks, overlaping,  nombre de 
 completer .PHONY
 
 Dans le Reciprocal Rank Fusion (RRF), le k est un paramètre de lissage qui contrôle l’importance du rang dans le score.
+
+ia used for improving prompt for query expansion and 
