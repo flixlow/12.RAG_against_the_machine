@@ -21,7 +21,9 @@ class Index(BaseModel):
 
     def model_post_init(self, _: Any) -> None:
         self._chunks: list[ChunkData] = []
+        self._side_chunks: list[str] = []
         self._files: list[Path] = self.listing(self.dir)
+        self._max_path_len: int = max(len(f.as_posix()) for f in self._files)*3
         if self.emb_flag:
             if Path(Config.CHROMA_PATH).exists():
                 shutil.rmtree(Config.CHROMA_PATH)
@@ -35,7 +37,7 @@ class Index(BaseModel):
         return [f for f in Path(dir).rglob('*') if f.is_file()]
 
     def open(self) -> None:
-        overlap: int = int(self.chunk_size * 0.02)
+        overlap: int = int(self.chunk_size * 0.175)
         txt_splitter = RCTS(chunk_size=self.chunk_size,
                             chunk_overlap=overlap,
                             add_start_index=True)
@@ -54,39 +56,40 @@ class Index(BaseModel):
                 if file.suffix in ['.py', '.txt', '.md']:
                     with open(file) as f:
                         self.chunking(splitters.get(file.suffix, txt_splitter),
-                                      file.as_posix(), f.read())
+                                      file, f.read())
             except OSError:
                 print(f"\033[1;38;5;208m[WARNING]\033[0m Can't open {file}.")
                 continue
 
-    def chunking(self, splitter: RCTS, file: str, content: str) -> None:
-        # clean_file = file.replace('/', ' ').replace('_', ' ')
-        # chunks = splitter.create_documents([clean_file*5 + '\n' + content])
+    def chunking(self, splitter: RCTS, file: Path, content: str) -> None:
+        path = str(file.parent).replace('/', ' ') + '\n'
         chunks = splitter.create_documents([content])
+        content = f"{file.name}\n" * 5 + path
 
         for chunk in chunks:
             start = chunk.metadata['start_index']
-            source = MinimalSource(
-                file_path=file,
-                first_character_index=start,
-                last_character_index=start + len(chunk.page_content)
-            )
-            self._chunks.append(ChunkData(
-                content=chunk.page_content,
-                metadata=source
-            ))
+            end = start + len(chunk.page_content)
+            source = MinimalSource(file_path=file.as_posix(),
+                                   first_character_index=start,
+                                   last_character_index=end)
+            self._side_chunks.append(content + chunk.page_content)
+            self._chunks.append(
+                ChunkData(content=chunk.page_content, metadata=source))
 
     def save(self) -> None:
         if self._chunks == []:
             raise RagIndexError("No data has been processed: "
                                 "please, ensure raw data is available.")
         file = Path(Config.CHUNKS_PATH)
+        side = Path(Config.SIDE_CHUNKS_PATH)
         file.parent.mkdir(exist_ok=True, parents=True)
 
         try:
             with open(file, 'w') as f:
                 chunks = [chunk.model_dump() for chunk in self._chunks]
                 json.dump(chunks, f, ensure_ascii=False, indent=4)
+            with open(side, 'w') as f:
+                json.dump(self._side_chunks, f, ensure_ascii=False, indent=4)
         except OSError as e:
             raise RagIndexError(f"Can't save chunk to file {file}.") from e
 
@@ -101,7 +104,7 @@ class Index(BaseModel):
                                  documents=docs[start:end])
 
     def index(self) -> None:
-        corpus = [chunk.content for chunk in self._chunks]
+        corpus = self._side_chunks
 
         corpus_tokens = bm25s.tokenize(corpus)
         retriever = bm25s.BM25(corpus=corpus)
@@ -109,4 +112,3 @@ class Index(BaseModel):
         if Path(Config.BM25_PATH).exists():
             shutil.rmtree(Config.BM25_PATH)
         retriever.save(Config.BM25_PATH)
-        print(len(self._chunks))

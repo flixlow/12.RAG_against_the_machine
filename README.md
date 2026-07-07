@@ -107,4 +107,8 @@ completer .PHONY
 
 Dans le Reciprocal Rank Fusion (RRF), le k est un paramètre de lissage qui contrôle l’importance du rang dans le score.
 
-ia used for improving prompt for query expansion and 
+ia used for improving prompt for query expansion
+
+implement possibility with vllm local
+implement recall for make evaluate comparision between file given by 
+recall superior to 95% on doc and 70% on code

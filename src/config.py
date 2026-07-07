@@ -11,3 +11,4 @@ class Config:
     MODEL = "ollama/qwen3:0.6b"
     API_BASE = "http://localhost:11434"
     SIGLE_QUERY = "single_query.json"
+    SIDE_CHUNKS_PATH = PROCESSED + "chunks/side.json"

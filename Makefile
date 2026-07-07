@@ -69,3 +69,6 @@ evaluate_code: moulinette
 	./moulinette_pkg/moulinette-ubuntu evaluate_student_search_results $(PUBLIC_CODE_SEARCH_RESULTS) $(PUBLIC_CODE_ANSWERED_QUESTIONS)
 
 .PHONY: run install debug clean lint lint-strict data moulinette index search search_dataset answer answer_dataset evaluate recall
+
+best:
+	make index ARG="--max_chunk_size=1200" && make search_dataset && make evaluate_docs && make evaluate_code
