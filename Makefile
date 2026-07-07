@@ -8,7 +8,8 @@ PUBLIC_CODE_ANSWERED_QUESTIONS := data/datasets_public/public/AnsweredQuestions/
 PUBLIC_DOCS_SEARCH_RESULTS := data/output/search_results/dataset_docs_public.json
 PUBLIC_CODE_SEARCH_RESULTS := data/output/search_results/dataset_code_public.json
 
-run: install index
+run: install
+	$(RUN) index --embedding && make search_dataset ARG="--hybrid" && make evaluate_docs && make evaluate_code
 
 install: data Makefile
 	uv sync

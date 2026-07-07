@@ -1,5 +1,6 @@
 from langchain_text_splitters import (RecursiveCharacterTextSplitter as RCTS,
                                       Language)
+from chromadb.utils.embedding_functions import OllamaEmbeddingFunction
 from src.models import ChunkData, MinimalSource
 from pydantic import BaseModel, Field
 from tqdm import tqdm  # type: ignore
@@ -23,12 +24,13 @@ class Index(BaseModel):
         self._chunks: list[ChunkData] = []
         self._side_chunks: list[str] = []
         self._files: list[Path] = self.listing(self.dir)
-        self._max_path_len: int = max(len(f.as_posix()) for f in self._files)*3
         if self.emb_flag:
             if Path(Config.CHROMA_PATH).exists():
                 shutil.rmtree(Config.CHROMA_PATH)
+            ef = OllamaEmbeddingFunction(model_name="nomic-embed-text")
             cli: ClientAPI = chromadb.PersistentClient(path=Config.CHROMA_PATH)
-            self._collection: Collection = cli.get_or_create_collection("coll")
+            self._collection: Collection = cli.get_or_create_collection(
+                "collection", embedding_function=ef)
 
     @staticmethod
     def listing(dir: str) -> list[Path]:
@@ -37,7 +39,7 @@ class Index(BaseModel):
         return [f for f in Path(dir).rglob('*') if f.is_file()]
 
     def open(self) -> None:
-        overlap: int = int(self.chunk_size * 0.175)
+        overlap: int = int(self.chunk_size * 0.2)
         txt_splitter = RCTS(chunk_size=self.chunk_size,
                             chunk_overlap=overlap,
                             add_start_index=True)
@@ -64,7 +66,7 @@ class Index(BaseModel):
     def chunking(self, splitter: RCTS, file: Path, content: str) -> None:
         path = str(file.parent).replace('/', ' ') + '\n'
         chunks = splitter.create_documents([content])
-        content = f"{file.name}\n" * 5 + path
+        content = f"FILE={file.name}\n" * 5 + f"PATH={path}"
 
         for chunk in chunks:
             start = chunk.metadata['start_index']

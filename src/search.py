@@ -51,7 +51,8 @@ class Search(BaseModel):
         try:
             if self.hybrid:
                 client = chromadb.PersistentClient(Config.CHROMA_PATH)
-                self._collection: Collection = client.get_collection("coll")
+                self._collection: Collection = client.get_collection(
+                    "collection")
         except chromadb.errors.NotFoundError:
             raise SearchError("collection from embedding does not exist, "
                               "please run index --embedding first.")

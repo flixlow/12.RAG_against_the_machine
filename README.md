@@ -101,7 +101,8 @@ on fait des paquets de chunk pour accelerer l embedding car il y a des limites d
 
 generation a l ia: embedding et embed batch
 
-parametre sur lesquels on peut jouer, taille des chunks, overlaping,  nombre de chunks pris en contexte, model utilise pour l'embedding, hybrid normaliser les vecteurs entre bm25 et chromadb au lieu de rrf
+parametre sur lesquels on peut jouer:
+taille des chunks, overlaping,  nombre de chunks pris en contexte, model utilise pour l'embedding, hybrid normaliser les vecteurs entre bm25 et chromadb au lieu de rrf, nombre de fois ou le path ou le file est noté en contexte,
 
 completer .PHONY
 
