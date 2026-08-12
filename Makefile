@@ -9,7 +9,11 @@ PUBLIC_DOCS_SEARCH_RESULTS := data/output/search_results/dataset_docs_public.jso
 PUBLIC_CODE_SEARCH_RESULTS := data/output/search_results/dataset_code_public.json
 
 run: install
-	$(RUN) index --embedding && make search_dataset ARG="--hybrid" && make evaluate_docs && make evaluate_code
+	$(RUN) index && make search_dataset && make evaluate_docs && make evaluate_code && make answer_dataset
+
+improved: install
+	ollama pull nomic-embed-text
+	$(RUN) index --embedding && make search_dataset --hybrid && make evaluate_docs && make evaluate_code && make answer_dataset
 
 install: data Makefile
 	uv sync

@@ -15,3 +15,7 @@ class InputSingleQueryError(SearchError):
 
 class AnswerError(Exception):
     pass
+
+
+class EvaluateError(Exception):
+    pass

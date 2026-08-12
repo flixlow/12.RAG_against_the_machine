@@ -4,6 +4,7 @@ from src.search import Search
 from src.config import Config
 from src.answer import Answer
 from src.index import Index
+from src.evaluate import Evaluator
 from pathlib import Path
 import time
 import json
@@ -42,8 +43,7 @@ class Rag:
             raise SearchError(f"invalid dataset_path: {dataset_path}")
         try:
             with open(dataset_path) as f:
-                content = f.read()
-                questions = json.loads(content)
+                questions = json.load(f)
         except OSError:
             raise SearchError(f"can't loading content from {dataset_path}")
         except json.JSONDecodeError as e:
@@ -63,5 +63,9 @@ class Rag:
                           save_directory=save_directory)
         provider.answer()
 
-    def evaluate(self) -> None:
-        print("evaluate")
+    def evaluate(self, student_search_results_path: str,
+                 dataset_path: str) -> None:
+        evaluator = Evaluator(
+            student_search_results_path=student_search_results_path,
+            dataset_path=dataset_path)
+        evaluator.evaluate()

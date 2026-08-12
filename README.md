@@ -91,6 +91,8 @@ make evaluate
 [ ] est ce que j'ai besoin de tensorflow que j ai rajoute a la main
 [ ] rajouter encoding="utf-8" sur toutes les ouvertures de fichiers json txt py mduv run ollama run qwen
 [ ] ajouter dans les depedances systeme du projet ollama a avoir avec uv
+[ ] gerer erreur quand le modele pour l embedding n est pas pull depuis ollama
+[ ] gerer erreur quand on lance hybrid sans l embedding fait avant
 
 choisir le bon modele d'embedding : comment savoir quoi choisir comme modele pour de l embedding : self._embedding_function: Callable = OllamaEmbeddingFunction(model_name=)
 https://ollama.com/library
@@ -113,3 +115,8 @@ ia used for improving prompt for query expansion
 implement possibility with vllm local
 implement recall for make evaluate comparision between file given by 
 recall superior to 95% on doc and 70% on code
+
+[ ] ouvrir student search result
+[ ] ouvrir le dataset answer
+[ ] trouver par les id des questions le bon dict
+[ ] comparer les intervalles entre toutes les 

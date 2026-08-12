@@ -32,20 +32,23 @@ class Answer(BaseModel):
     save_directory: str
 
     def model_post_init(self, _: Any) -> None:
-        self._results: StudentSearchResults = self.open()
-        self._chunks: list[ChunkData] = self.load()
+        self._results: StudentSearchResults = self.load_search_results(
+            self.results_path)
+        self._chunks: list[ChunkData] = self.load_chunks()
         lm = dspy.LM(Config.MODEL, api_base=Config.API_BASE)
         dspy.configure(lm=lm)
         self._predict = dspy.Predict(QA)
 
-    def open(self) -> StudentSearchResults:
+    @staticmethod
+    def load_search_results(path: str) -> StudentSearchResults:
         try:
-            with open(self.results_path) as f:
+            with open(path) as f:
                 return StudentSearchResults(**json.load(f))
         except (OSError, json.JSONDecodeError) as e:
             raise AnswerError from e
 
-    def load(self) -> list[ChunkData]:
+    @staticmethod
+    def load_chunks() -> list[ChunkData]:
         try:
             with open(Config.CHUNKS_PATH) as f:
                 return [ChunkData(**c) for c in json.load(f)]
