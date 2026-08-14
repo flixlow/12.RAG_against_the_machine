@@ -90,16 +90,16 @@ make evaluate
 [ ] retirer les type ignore
 [ ] est ce que j'ai besoin de tensorflow que j ai rajoute a la main
 [ ] rajouter encoding="utf-8" sur toutes les ouvertures de fichiers json txt py mduv run ollama run qwen
-[ ] ajouter dans les depedances systeme du projet ollama a avoir avec uv
+[ ] ajouter dans les dépendances systeme du projet ollama a avoir avec uv
 [ ] gerer erreur quand le modele pour l embedding n est pas pull depuis ollama
-[ ] gerer erreur quand on lance hybrid sans l embedding fait avant
+[x] gerer erreur quand on lance hybrid sans l embedding fait avant
 
 choisir le bon modele d'embedding : comment savoir quoi choisir comme modele pour de l embedding : self._embedding_function: Callable = OllamaEmbeddingFunction(model_name=)
 https://ollama.com/library
 
 ![alt text](embedding.png)
 
-on fait des paquets de chunk pour accelerer l embedding car il y a des limites du nombre de requetes http
+on fait des paquets de chunk pour accelerer l'embedding car il y a des limites du nombre de requetes http
 
 generation a l ia: embedding et embed batch
 
@@ -115,8 +115,4 @@ ia used for improving prompt for query expansion
 implement possibility with vllm local
 implement recall for make evaluate comparision between file given by 
 recall superior to 95% on doc and 70% on code
-
-[ ] ouvrir student search result
-[ ] ouvrir le dataset answer
-[ ] trouver par les id des questions le bon dict
-[ ] comparer les intervalles entre toutes les 
+[ ] max chunk size de 1000 pour pouvoir embedding avec le all-minilm:l6-v2

@@ -9,6 +9,8 @@ class Config:
     ANSWER_PATH = DATA + OUTPUT + "search_results_and_answer"
     BM25_PATH = PROCESSED + "bm25_index"
     MODEL = "ollama/qwen3:0.6b"
+    EMBEDDING_MODEL = "all-minilm:l6-v2"
+    # EMBEDDING_MODEL = "nomic-embed-text"
     API_BASE = "http://localhost:11434"
     SIGLE_QUERY = "single_query.json"
     SIDE_CHUNKS_PATH = PROCESSED + "chunks/side.json"

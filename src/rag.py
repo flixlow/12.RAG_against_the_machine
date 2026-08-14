@@ -42,7 +42,7 @@ class Rag:
         if not Path(dataset_path).exists():
             raise SearchError(f"invalid dataset_path: {dataset_path}")
         try:
-            with open(dataset_path) as f:
+            with open(dataset_path, encoding='utf-8') as f:
                 questions = json.load(f)
         except OSError:
             raise SearchError(f"can't loading content from {dataset_path}")

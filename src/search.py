@@ -44,7 +44,7 @@ class Search(BaseModel):
                               "Please build the index first: make index"
                               ) from e
         try:
-            with open(Config.CHUNKS_PATH) as f:
+            with open(Config.CHUNKS_PATH, encoding='utf-8') as f:
                 self._chunks: list[dict[str, Any]] = json.load(f)
         except (OSError, json.JSONDecodeError) as e:
             raise SearchError from e
@@ -127,7 +127,7 @@ class Search(BaseModel):
             file_str = f"{self.save_dir}/{self.file}"
             file = Path(file_str)
             file.parent.mkdir(exist_ok=True, parents=True)
-            with open(file, 'w') as f:
+            with open(file, 'w', encoding='utf-8') as f:
                 json.dump(output.model_dump(), f, ensure_ascii=False, indent=4)
 
         except (OSError, json.JSONDecodeError) as e:

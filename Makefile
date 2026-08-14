@@ -3,13 +3,14 @@ RUN := uv run -m src
 QUERY ?= 'How to configure OpenAI server?'
 LINT_FLAG := --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
+PUBLIC_DOCS_DATASET := data/datasets_public/public/UnansweredQuestions/dataset_docs_public.json
+PUBLIC_CODE_DATASET := data/datasets_public/public/UnansweredQuestions/dataset_code_public.json
 PUBLIC_DOCS_ANSWERED_QUESTIONS := data/datasets_public/public/AnsweredQuestions/dataset_docs_public.json
 PUBLIC_CODE_ANSWERED_QUESTIONS := data/datasets_public/public/AnsweredQuestions/dataset_code_public.json
 PUBLIC_DOCS_SEARCH_RESULTS := data/output/search_results/dataset_docs_public.json
 PUBLIC_CODE_SEARCH_RESULTS := data/output/search_results/dataset_code_public.json
 
-run: install
-	$(RUN) index && make search_dataset && make evaluate_docs && make evaluate_code && make answer_dataset
+run: install index search_dataset evaluate_docs evaluate_code answer_dataset
 
 improved: install
 	ollama pull nomic-embed-text
@@ -57,8 +58,8 @@ search:
 	$(RUN) search $(QUERY)
 
 search_dataset:
-	$(RUN) search_dataset data/datasets_public/public/UnansweredQuestions/dataset_docs_public.json $(ARG)
-	$(RUN) search_dataset data/datasets_public/public/UnansweredQuestions/dataset_code_public.json $(ARG)
+	$(RUN) search_dataset $(PUBLIC_DOCS_DATASET) $(ARG)
+	$(RUN) search_dataset $(PUBLIC_CODE_DATASET) $(ARG)
 
 answer:
 	$(RUN) answer $(QUERY)

@@ -27,7 +27,7 @@ class Index(BaseModel):
         if self.emb_flag:
             if Path(Config.CHROMA_PATH).exists():
                 shutil.rmtree(Config.CHROMA_PATH)
-            ef = OllamaEmbeddingFunction(model_name="nomic-embed-text")
+            ef = OllamaEmbeddingFunction(model_name=Config.EMBEDDING_MODEL)
             cli: ClientAPI = chromadb.PersistentClient(path=Config.CHROMA_PATH)
             self._collection: Collection = cli.get_or_create_collection(
                 "collection", embedding_function=ef)
@@ -56,7 +56,7 @@ class Index(BaseModel):
         for file in tqdm(self._files, desc="chunking"):
             try:
                 if file.suffix in ['.py', '.txt', '.md']:
-                    with open(file) as f:
+                    with open(file, encoding='utf-8') as f:
                         self.chunking(splitters.get(file.suffix, txt_splitter),
                                       file, f.read())
             except OSError:
@@ -87,10 +87,10 @@ class Index(BaseModel):
         file.parent.mkdir(exist_ok=True, parents=True)
 
         try:
-            with open(file, 'w') as f:
+            with open(file, 'w', encoding='utf-8') as f:
                 chunks = [chunk.model_dump() for chunk in self._chunks]
                 json.dump(chunks, f, ensure_ascii=False, indent=4)
-            with open(side, 'w') as f:
+            with open(side, 'w', encoding='utf-8') as f:
                 json.dump(self._side_chunks, f, ensure_ascii=False, indent=4)
         except OSError as e:
             raise RagIndexError(f"Can't save chunk to file {file}.") from e

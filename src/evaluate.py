@@ -17,7 +17,7 @@ class Evaluator(BaseModel):
     @staticmethod
     def _load_search_results(path: str) -> StudentSearchResults:
         try:
-            with open(path) as f:
+            with open(path, encoding='utf-8') as f:
                 return StudentSearchResults(**json.load(f))
         except (OSError, json.JSONDecodeError) as e:
             raise EvaluateError from e
@@ -25,7 +25,7 @@ class Evaluator(BaseModel):
     @staticmethod
     def _load_dataset(path: str) -> RagDataset:
         try:
-            with open(path) as f:
+            with open(path, encoding='utf-8') as f:
                 return RagDataset(**json.load(f))
         except (OSError, json.JSONDecodeError) as e:
             raise EvaluateError from e

@@ -42,7 +42,7 @@ class Answer(BaseModel):
     @staticmethod
     def load_search_results(path: str) -> StudentSearchResults:
         try:
-            with open(path) as f:
+            with open(path, encoding='utf-8') as f:
                 return StudentSearchResults(**json.load(f))
         except (OSError, json.JSONDecodeError) as e:
             raise AnswerError from e
@@ -50,7 +50,7 @@ class Answer(BaseModel):
     @staticmethod
     def load_chunks() -> list[ChunkData]:
         try:
-            with open(Config.CHUNKS_PATH) as f:
+            with open(Config.CHUNKS_PATH, encoding='utf-8') as f:
                 return [ChunkData(**c) for c in json.load(f)]
         except (OSError, json.JSONDecodeError) as e:
             raise AnswerError from e
@@ -62,7 +62,7 @@ class Answer(BaseModel):
             first = source.first_character_index
             last = source.last_character_index
             try:
-                with open(path) as f:
+                with open(path, encoding='utf-8') as f:
                     content = f.read()
                     context += f"{content[max(0, first):max(0, last)]}\n"
                     context += "---\n\n"
@@ -86,7 +86,7 @@ class Answer(BaseModel):
             file_str = f"{self.save_directory}/{Path(self.results_path).name}"
             file = Path(file_str)
             file.parent.mkdir(exist_ok=True, parents=True)
-            with open(file, 'w') as f:
+            with open(file, 'w', encoding='utf-8') as f:
                 json.dump(answer.model_dump(), f, indent=4)
         except OSError as e:
             raise AnswerError from e
