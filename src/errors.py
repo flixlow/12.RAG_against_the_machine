@@ -8,7 +8,7 @@ class SearchError(Exception):
 
 
 class InputSingleQueryError(SearchError):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("uv run -m src search <query> "
                          "[--k N] [--save_directory PATH]")
 
