@@ -130,3 +130,5 @@ queries.
 5. Local HTTP API: expose querying the index and answering questions over a
 small local HTTP API, so the system can be driven by something other than the
 CLI.
+
+[ ] implement signle query answer

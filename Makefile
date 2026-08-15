@@ -27,7 +27,7 @@ debug:
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
-	rm -rf moulinette_pkg
+	rm -rf moulinette
 	rm -rf .venv
 	rm -rf data
 
@@ -84,3 +84,12 @@ recall_code:
 
 best:
 	make index ARG="--max_chunk_size=1200" && make search_dataset && make evaluate_docs && make evaluate_code
+
+exam: moulinette
+	cp ~/Downloads/exams.zip . 
+	cp ~/Downloads/datasets_private.zip .
+	mkdir -p data/datasets
+	unzip exams.zip
+	unzip datasets_private.zip -d data/datasets
+	./exams/scripts/exam_retrieval.sh --student-path . --moulinette-path ./moulinette_pkg/moulinette-ubuntu
+# 	./exams/scripts/exam_answer.sh --student-path . --moulinette-path ./moulinette_pkg/moulinette-ubuntu
