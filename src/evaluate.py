@@ -10,30 +10,14 @@ class Evaluator(BaseModel):
     dataset_path: str
 
     def model_post_init(self, _: Any = None) -> None:
-        self._search_results: StudentSearchResults = self._load_search_results(
-            self.student_search_results_path)
-        self._dataset: RagDataset = self._load_dataset(self.dataset_path)
+        self._student: StudentSearchResults = self.load_model(
+            self.student_search_results_path, StudentSearchResults)
+        self._dataset: RagDataset = self.load_model(
+            self.dataset_path, RagDataset)
         self._reference = self.create_reference_set()
 
     @staticmethod
-    def _load_search_results(path: str) -> StudentSearchResults:
-        try:
-            with open(path, encoding='utf-8') as f:
-                return StudentSearchResults(**json.load(f))
-        except (OSError, json.JSONDecodeError) as e:
-            raise EvaluateError from e
-
-    @staticmethod
-    def _load_dataset(path: str) -> RagDataset:
-        try:
-            with open(path, encoding='utf-8') as f:
-                return RagDataset(**json.load(f))
-        except (OSError, json.JSONDecodeError) as e:
-            raise EvaluateError from e
-
-    @staticmethod
-    def _load_model(path: str, model_cls: type
-                    ) -> StudentSearchResults | RagDataset:
+    def load_model(path: str, model_cls: type) -> Any:
         try:
             with open(path, encoding='utf-8') as f:
                 return model_cls(**json.load(f))
@@ -41,78 +25,66 @@ class Evaluator(BaseModel):
             raise EvaluateError from e
 
     @staticmethod
-    def _iou(start_a: int, end_a: int, start_b: int, end_b: int) -> float:
+    def iou(start_a: int, end_a: int, start_b: int, end_b: int) -> bool:
         if start_a >= end_a or start_b >= end_b:
-            return 0.0
+            return False
 
         intersection = max(0, min(end_a, end_b) - max(start_a, start_b))
         union = max(end_a, end_b) - min(start_a, start_b)
-        if union <= 0:
-            return 0.0
-        return intersection / union
 
-    def create_reference_set(self) -> dict[str, list[tuple[str, int, int]]]:
-        reference: dict[str, list[tuple[str, int, int]]] = {}
+        return True if union > 0 and intersection / union >= 0.05 else False
+
+    def create_reference_set(self) -> dict[str, tuple[str, int, int]]:
+        reference: dict[str, tuple[str, int, int]] = {}
         for question in self._dataset.rag_questions:
             if isinstance(question, AnsweredQuestion):
-                reference[question.question_id] = [
-                    (source.file_path, source.first_character_index,
-                     source.last_character_index)
-                    for source in question.sources
-                ]
+                src = question.sources[0]
+                reference[question.question_id] = (
+                    src.file_path,
+                    src.first_character_index,
+                    src.last_character_index
+                )
         return reference
 
-    def recall_at_k(self, question_id: str, k: int) -> float:
-        reference = self._reference.get(question_id, [])
-        if not reference:
-            return 0.0
+    def recall_at_k(self, question_id: str, k: int) -> bool:
+        reference = self._reference.get(question_id, None)
 
-        student_result = next(
-            (result for result in self._search_results.search_results
-             if result.question_id == question_id),
-            None,
-        )
-        if student_result is None:
-            return 0.0
+        for result in self._student.search_results:
+            if result.question_id == question_id:
+                student_result = result
+                break
 
+        if reference is None or student_result is None:
+            return False
+
+        ref_path, reference_start_index, reference_end_index = reference
         top_k_results = student_result.retrieved_sources[:k]
-        found: set[tuple[str, int, int]] = set()
 
-        for ref_path, ref_start, ref_end in reference:
-            for candidate in top_k_results:
-                if candidate.file_path != ref_path:
-                    continue
+        for chunk in top_k_results:
+            if chunk.file_path == ref_path and self.iou(
+             reference_start_index, reference_end_index,
+             chunk.first_character_index, chunk.last_character_index):
+                return True
 
-                iou = self._iou(ref_start, ref_end,
-                                candidate.first_character_index,
-                                candidate.last_character_index)
-                if iou >= 0.05:
-                    found.add((ref_path, ref_start, ref_end))
-                    break
-
-        return len(found) / len(reference)
+        return False
 
     def evaluate(self) -> None:
         reference = self._reference
+        summary: dict[int, float] = {}
+        ks = [1, 3, 5, 10]
+
         if not reference:
             print("Empty set of questions.")
             return
 
-        ks = sorted({1, 3, 5, 10, getattr(self._search_results, 'k', 10)})
-        summary: dict[int, float] = {}
-
         for k in ks:
-            scores = [self.recall_at_k(qid, k) for qid in reference]
+            scores = []
+            for question_id in reference:
+                score = self.recall_at_k(question_id, k)
+                scores.append(score)
             summary[k] = sum(scores) / len(scores) if scores else 0.0
-
-        print("\nRecall Results")
-        print("========================================")
-        print(f"Questions evaluated: {len(reference)}")
 
         for k in ks:
             value = summary.get(k, 0.0)
             percentage = value * 100
             print(f"Recall@{k}: {value:.2f} ({percentage:.1f}%)")
-
-        output = {f"recall@{k}": round(summary.get(k, 0.0), 2) for k in ks}
-        print(output)

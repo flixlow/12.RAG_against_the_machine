@@ -62,9 +62,7 @@ class Search(BaseModel):
             self._predict = dspy.Predict(QA)
 
     def expand_query(self, query: str) -> str:
-        # print("before", query)
         result = self._predict(query=query)
-        # print("after", result.expanded_query)
         return result.expanded_query
 
     def reciprocal_rank_fusion(self, bm25_results: list[int],
@@ -114,7 +112,7 @@ class Search(BaseModel):
                                     retrieved_sources=sources)
 
     def search_dataset(self) -> None:
-        for query in tqdm(self.rag_questions):
+        for query in tqdm(self.rag_questions, desc="searching"):
             search_result = self.search(query)
             self._results.append(search_result)
 

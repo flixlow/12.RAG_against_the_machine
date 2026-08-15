@@ -65,6 +65,8 @@ class Rag:
 
     def evaluate(self, student_search_results_path: str,
                  dataset_path: str) -> None:
+        print("Recall@k Calculation")
+
         evaluator = Evaluator(
             student_search_results_path=student_search_results_path,
             dataset_path=dataset_path)

@@ -72,7 +72,7 @@ class Answer(BaseModel):
 
     def answer(self) -> None:
         answer: list[MinimalAnswer] = []
-        for result in tqdm(self._results.search_results):
+        for result in tqdm(self._results.search_results, desc="answering"):
             context = self.create_context(result)
 
             ret = self._predict(context=context, question=result.question_str)
