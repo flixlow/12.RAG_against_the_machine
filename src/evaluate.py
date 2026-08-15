@@ -13,6 +13,7 @@ class Evaluator(BaseModel):
         self._search_results: StudentSearchResults = self._load_search_results(
             self.student_search_results_path)
         self._dataset: RagDataset = self._load_dataset(self.dataset_path)
+        self._reference = self.create_reference_set()
 
     @staticmethod
     def _load_search_results(path: str) -> StudentSearchResults:
@@ -31,6 +32,15 @@ class Evaluator(BaseModel):
             raise EvaluateError from e
 
     @staticmethod
+    def _load_model(path: str, model_cls: type
+                    ) -> StudentSearchResults | RagDataset:
+        try:
+            with open(path, encoding='utf-8') as f:
+                return model_cls(**json.load(f))
+        except (OSError, json.JSONDecodeError) as e:
+            raise EvaluateError from e
+
+    @staticmethod
     def _iou(start_a: int, end_a: int, start_b: int, end_b: int) -> float:
         if start_a >= end_a or start_b >= end_b:
             return 0.0
@@ -42,18 +52,18 @@ class Evaluator(BaseModel):
         return intersection / union
 
     def create_reference_set(self) -> dict[str, list[tuple[str, int, int]]]:
-        ref: dict[str, list[tuple[str, int, int]]] = {}
+        reference: dict[str, list[tuple[str, int, int]]] = {}
         for question in self._dataset.rag_questions:
             if isinstance(question, AnsweredQuestion):
-                ref[question.question_id] = [
+                reference[question.question_id] = [
                     (source.file_path, source.first_character_index,
                      source.last_character_index)
                     for source in question.sources
                 ]
-        return ref
+        return reference
 
     def recall_at_k(self, question_id: str, k: int) -> float:
-        reference = self.create_reference_set().get(question_id, [])
+        reference = self._reference.get(question_id, [])
         if not reference:
             return 0.0
 
@@ -83,22 +93,16 @@ class Evaluator(BaseModel):
         return len(found) / len(reference)
 
     def evaluate(self) -> None:
-        reference = self.create_reference_set()
+        reference = self._reference
         if not reference:
             print("Empty set of questions.")
             return
 
-        ks = sorted({1, 3, 5, 10, self._search_results.k})
+        ks = sorted({1, 3, 5, 10, getattr(self._search_results, 'k', 10)})
         summary: dict[int, float] = {}
-        per_question: dict[str, dict[int, float]] = {}
 
         for k in ks:
-            scores = []
-            for question_id in reference:
-                score = self.recall_at_k(question_id, k)
-                scores.append(score)
-                per_question.setdefault(question_id, {})[k] = score
-
+            scores = [self.recall_at_k(qid, k) for qid in reference]
             summary[k] = sum(scores) / len(scores) if scores else 0.0
 
         print("\nRecall Results")

@@ -115,4 +115,18 @@ ia used for improving prompt for query expansion
 implement possibility with vllm local
 implement recall for make evaluate comparision between file given by 
 recall superior to 95% on doc and 70% on code
+
 [ ] max chunk size de 1000 pour pouvoir embedding avec le all-minilm:l6-v2
+
+commencer l'indexing hash nom de fichier date de modification, est ce qu'il n'existe pas un module qui fait ca automatiquement
+1. Semantic embeddings: add a vector index built with a lightweight CPU model
+(such as all-MiniLM-L6-v2) next to your lexical index.
+2. Hybrid retrieval: combine the lexical and semantic rankings into a single result
+list.
+3. Incremental indexing: when a file changes, re-index only that file instead of
+rebuilding the whole index.
+4. Caching: cache the index and query results to speed up cold start and repeated
+queries.
+5. Local HTTP API: expose querying the index and answering questions over a
+small local HTTP API, so the system can be driven by something other than the
+CLI.
