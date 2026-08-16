@@ -27,7 +27,7 @@ debug:
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
-	rm -rf moulinette
+	rm -rf moulinette_pkg
 	rm -rf .venv
 	rm -rf data
 

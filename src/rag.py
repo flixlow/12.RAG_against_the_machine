@@ -12,10 +12,11 @@ import os
 
 
 class Rag:
-    def index(self, dir: str = Config.RAW,
-              max_chunk_size: int = 2000, embedding: bool = False) -> None:
+    def index(self, dir: str = Config.RAW, max_chunk_size: int = 2000,
+              embedding: bool = False, incremental: bool = True) -> None:
         start = time.time()
-        index = Index(dir=dir, chunk_size=max_chunk_size, emb_flag=embedding)
+        index = Index(dir=dir, chunk_size=max_chunk_size,
+                      embedding_flag=embedding, incremental_flag=incremental)
         index.open()
         index.save()
         index.index()
