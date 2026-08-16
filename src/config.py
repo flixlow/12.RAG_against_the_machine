@@ -14,3 +14,4 @@ class Config:
     API_BASE = "http://localhost:11434"
     SIGLE_QUERY = "single_query.json"
     SIDE_CHUNKS_PATH = PROCESSED + "chunks/side.json"
+    MANIFEST = "data/.manifest"

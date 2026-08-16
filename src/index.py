@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 import chromadb
 import shutil
+import hashlib
 import json
 
 
@@ -19,11 +20,15 @@ class Index(BaseModel):
     dir: str
     chunk_size: int = Field(gt=0, le=2000)
     emb_flag: bool = Field(default=False)
+    incremental_flag: bool = Field(default=True)
 
     def model_post_init(self, _: Any) -> None:
         self._chunks: list[ChunkData] = []
         self._side_chunks: list[str] = []
+        self._deleted: list[str] = []
+        self._manifest: dict[str, str] = Index._load_manifest()
         self._files: list[Path] = self.listing(self.dir)
+
         if self.emb_flag:
             if Path(Config.CHROMA_PATH).exists():
                 shutil.rmtree(Config.CHROMA_PATH)
@@ -33,10 +38,47 @@ class Index(BaseModel):
                 "collection", embedding_function=ef)
 
     @staticmethod
-    def listing(dir: str) -> list[Path]:
+    def _hash(file: Path) -> str:
+        return hashlib.sha256(file.read_bytes()).hexdigest()
+
+    @staticmethod
+    def _load_manifest() -> dict[str, str]:
+        manifest = Path(Config.MANIFEST)
+        return json.loads(manifest.read_text()) if manifest.exists() else {}
+
+    def _save_manifest(self) -> None:
+        Path(Config.MANIFEST).write_text(
+            json.dumps(self._manifest, indent=2), encoding='utf-8')
+
+    def load_existing_chunks(self) -> list[ChunkData]:
+        return [ChunkData(**json.loads(Config.CHUNKS_PATH))]
+
+    def listing(self, dir: str) -> list[Path]:
+        seen: set[str] = set()
+        file_to_index: list[Path] = []
+
         if not Path(dir).exists():
             raise RagIndexError("The given path does not exist.")
-        return [f for f in Path(dir).rglob('*') if f.is_file()]
+
+        if self.incremental_flag is False:
+            return [f for f in Path(dir).rglob('*') if f.is_file()]
+
+        self._chunks = self.load_existing_chunks()
+
+        for file in Path(dir).rglob('*'):
+            if file.is_file():
+                key = file.as_posix()
+                seen.add(key)
+                file_hash = Index._hash(file)
+                if self._manifest.get(key) != file_hash:
+                    file_to_index.append(file)
+                    self._manifest[key] = file_hash
+
+        self._deleted = [k for k in self._manifest if k not in seen]
+        for k in self._deleted:
+            del self._manifest[k]
+
+        return file_to_index
 
     def open(self) -> None:
         overlap: int = int(self.chunk_size * 0.2)
@@ -62,6 +104,8 @@ class Index(BaseModel):
             except OSError:
                 print(f"\033[1;38;5;208m[WARNING]\033[0m Can't open {file}.")
                 continue
+
+        self._save_manifest()
 
     def chunking(self, splitter: RCTS, file: Path, content: str) -> None:
         path = str(file.parent).replace('/', ' ') + '\n'
