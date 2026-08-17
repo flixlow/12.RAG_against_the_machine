@@ -132,3 +132,21 @@ small local HTTP API, so the system can be driven by something other than the
 CLI.
 
 [ ] implement signle query answer
+
+
+        for file in Path(self.dir).rglob('*'):
+            if file.is_file():
+                key = file.as_posix()
+                file_hash = Index._hash(file)
+                seen.add(key)
+                if self._manifest.get(key) != file_hash:
+                    file_to_index.append(file)
+                    self._manifest[key] = file_hash
+
+        self._deleted = [k for k in self._manifest if k not in seen]
+        for k in self._deleted:
+            del self._manifest[k]
+
+
+with open("data.json", "w", encoding="utf-8") as f:
+    json.dump(data, f, ensure_ascii=False, indent=4)
