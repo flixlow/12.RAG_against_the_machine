@@ -25,6 +25,7 @@ class Index(BaseModel):
 
     def model_post_init(self, _: Any) -> None:
         self._deleted: list[str] = []
+        self._has_changes: bool = False
         self._manifest: dict[str, str] = Index._load_manifest()
         self._chunks: list[ChunkData] = self._load_existing_chunks()
         self._files: list[Path] = self.listing()
@@ -51,7 +52,7 @@ class Index(BaseModel):
         path = Path(Config.CHUNKS_PATH)
         if not self.incremental_flag or not path.exists():
             if path.exists():
-                shutil.rmtree(Config.CHUNKS_PATH)
+                path.unlink()
             return []
         content = path.read_text(encoding='utf-8')
         return [ChunkData(**chunk) for chunk in json.loads(content)]
@@ -69,32 +70,33 @@ class Index(BaseModel):
         if self.incremental_flag is False or self.embedding_flag is True:
             return [f for f in dir.rglob('*') if f.is_file()]
 
-        seen: list[str] = []
-        new: list[Path] = []
-        modified: list[Path] = []
-        deleted: list[str] = []
+        seen: set[str] = set()
+        new: set[Path] = set()
+        modified: set[Path] = set()
+        deleted: set[str] = set()
         manifest = self._manifest
 
         for f in dir.rglob('*'):
-            if not f.is_file() or f.suffix not in ['.py', '.txt', '.md']:
+            if not f.is_file():
                 continue
             key = f.as_posix()
-            seen.append(key)
+            seen.add(key)
             if manifest.get(key) is None:
-                new.append(f)
+                new.add(f)
             elif manifest[key] != self._hash(f):
-                modified.append(f)
+                modified.add(f)
 
-        deleted = [k for k in manifest.keys() if k not in set(seen)]
+        deleted = {k for k in manifest.keys() if k not in seen}
 
         for d in deleted:
             del self._manifest[d]
 
-        self.remove_obsolete([m.as_posix() for m in modified] + deleted)
+        self.remove_obsolete({m.as_posix() for m in modified} | deleted)
 
-        return new + modified
+        self._has_changes = bool(new or modified or deleted)
+        return list(new | modified)
 
-    def remove_obsolete(self, obsolete: list[str]) -> None:
+    def remove_obsolete(self, obsolete: set[str]) -> None:
         self._chunks = [
             c for c in self._chunks if c.metadata.file_path not in obsolete]
 
@@ -115,9 +117,10 @@ class Index(BaseModel):
 
         for file in tqdm(self._files, desc="chunking"):
             try:
-                with open(file, encoding='utf-8') as f:
-                    self.chunking(splitters.get(file.suffix, txt_splitter),
-                                  file, f.read())
+                if file.suffix in ['.py', '.txt', '.md']:
+                    with open(file, encoding='utf-8') as f:
+                        self.chunking(splitters.get(file.suffix, txt_splitter),
+                                      file, f.read())
                 self._manifest[file.as_posix()] = self._hash(file)
             except OSError:
                 print(f"\033[1;38;5;208m[WARNING]\033[0m Can't open {file}.")
@@ -163,6 +166,9 @@ class Index(BaseModel):
 
     def index(self) -> None:
         corpus = [c.content for c in self._chunks]
+
+        if not self._has_changes:
+            return
 
         corpus_tokens = bm25s.tokenize(corpus)
         retriever = bm25s.BM25(corpus=corpus)
