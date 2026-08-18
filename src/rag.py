@@ -64,8 +64,8 @@ class Rag:
         searcher.search_dataset()
 
     def answer(self, query: str | None = None, k: int = 5,
-               caching: bool = True) -> MinimalAnswer:
-        raw_str = self.search(query)
+               caching: bool = True) -> str:
+        raw_str = self.search(query, k)
         search_results = MinimalSearchResults.model_validate_json(raw_str)
 
         provider = Answer(
@@ -73,7 +73,9 @@ class Rag:
             save_directory=Config.ANSWER_PATH,
             cache_flag=caching
         )
-        return provider.answer(search_results)
+
+        result = provider.answer(search_results)
+        return result.model_dump_json(ensure_ascii=False, indent=4)
 
     def answer_dataset(self, student_search_results_path: str,
                        save_directory: str = Config.ANSWER_PATH,

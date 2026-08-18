@@ -80,6 +80,13 @@ class Answer(BaseModel):
                 raise AnswerError from e
         return context
 
+    def save_cache(self) -> None:
+        try:
+            with open(Config.CACHE, 'w') as f:
+                json.dump(self._cache, f, ensure_ascii=False, indent=4)
+        except (OSError, json.JSONDecodeError):
+            AnswerError("Error occurs when saving cache.")
+
     def save(self, answers: SSRAA) -> None:
         try:
             file_str = f"{self.save_directory}/{Path(self.results_path).name}"
@@ -93,12 +100,16 @@ class Answer(BaseModel):
     def answer(self, result: MinimalSearchResults) -> MinimalAnswer:
         if self.cache_flag is True:
             try:
-                cache_answer = self._cache[result.question_id]
+                cache_answer = self._cache[result.question_str]
+                return MinimalAnswer(
+                    **result.model_dump(), answer=cache_answer)
             except KeyError:
-                c = Answer.create_context(result)
-                new = self._predict(context=c, question=result.question_str)
-        answer = cache_answer if self.cache_flag else new
-        return MinimalAnswer(**result.model_dump(), answer=answer)
+                pass
+        c = Answer.create_context(result)
+        new = self._predict(context=c, question=result.question_str)
+        self._cache[result.question_str] = new.answer
+        self.save_cache()
+        return MinimalAnswer(**result.model_dump(), answer=new.answer)
 
     def answer_dataset(self) -> None:
         results = Answer._load_search_results(self.results_path)
