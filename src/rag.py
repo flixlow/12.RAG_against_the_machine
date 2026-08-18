@@ -1,4 +1,4 @@
-from src.models import UnansweredQuestion
+from src.models import UnansweredQuestion, MinimalSearchResults, MinimalAnswer
 from src.errors import SearchError, InputSingleQueryError
 from src.search import Search
 from src.config import Config
@@ -26,16 +26,25 @@ class Rag:
         print(f"\033[0;1mIndices saved under {Config.PROCESSED}\033[0m")
 
     def search(self, query: str | None = None, k: int = 5,
-               save_directory: str = Config.SEARCH_PATH,
-               hybrid: bool = False, expansion: bool = False) -> None:
-        if query is not None:
-            single = UnansweredQuestion(question=query)
-        else:
+               hybrid: bool = False, expansion: bool = False
+               ) -> str:
+        if query is None:
             raise InputSingleQueryError
-        searcher = Search(rag_questions=[single], k=k, save_dir=save_directory,
-                          file=Config.SIGLE_QUERY,
-                          hybrid=hybrid, expansion=expansion)
-        searcher.search_dataset()
+
+        single = UnansweredQuestion(question=query)
+
+        searcher = Search(
+            rag_questions=[single],
+            k=k,
+            save_dir=Config.SEARCH_PATH,
+            file=Config.SINGLE_QUERY,
+            hybrid=hybrid,
+            expansion=expansion
+        )
+
+        result = searcher.search(single)
+
+        return result.model_dump_json(ensure_ascii=False, indent=4)
 
     def search_dataset(self, dataset_path: str, k: int = 5,
                        save_directory: str = Config.SEARCH_PATH,
@@ -54,15 +63,23 @@ class Rag:
                           hybrid=hybrid, expansion=expansion)
         searcher.search_dataset()
 
-    def answer(self, query: str | None = None, k: int = 5,
-               save_directory: str = Config.ANSWER_PATH) -> None:
-        pass
+    def answer(self, query: str | None = None, k: int = 5) -> MinimalAnswer:
+        raw_str = self.search(query)
+        search_results = MinimalSearchResults.model_validate_json(raw_str)
+
+        provider = Answer(
+            results_path=Config.SINGLE_QUERY,
+            save_directory=Config.ANSWER_PATH
+        )
+        return provider.answer(search_results)
 
     def answer_dataset(self, student_search_results_path: str,
                        save_directory: str = Config.ANSWER_PATH) -> None:
-        provider = Answer(results_path=student_search_results_path,
-                          save_directory=save_directory)
-        provider.answer()
+        provider = Answer(
+            results_path=student_search_results_path,
+            save_directory=save_directory
+        )
+        provider.answer_dataset()
 
     def evaluate(self, student_search_results_path: str,
                  dataset_path: str) -> None:

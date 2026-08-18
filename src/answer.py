@@ -1,9 +1,10 @@
 from src.models import (MinimalSearchResults, StudentSearchResults,
                         ChunkData, MinimalAnswer)
 from src.models import StudentSearchResultsAndAnswer as SSRAA
+from pydantic import BaseModel, ConfigDict
 from tqdm import tqdm  # type: ignore
 from src.errors import AnswerError
-from pydantic import BaseModel
+from functools import lru_cache
 from src.config import Config
 import dspy  # type: ignore
 from pathlib import Path
@@ -31,9 +32,9 @@ class Answer(BaseModel):
     results_path: str
     save_directory: str
 
+    model_config = ConfigDict(frozen=True)
+
     def model_post_init(self, _: Any) -> None:
-        self._results: StudentSearchResults = self.load_search_results(
-            self.results_path)
         self._chunks: list[ChunkData] = self.load_chunks()
         lm = dspy.LM(Config.MODEL, api_base=Config.API_BASE)
         dspy.configure(lm=lm)
@@ -70,16 +71,21 @@ class Answer(BaseModel):
                 raise AnswerError from e
         return context
 
-    def answer(self) -> None:
-        answer: list[MinimalAnswer] = []
-        for result in tqdm(self._results.search_results, desc="answering"):
-            context = self.create_context(result)
+    @lru_cache
+    def answer(self, result: MinimalSearchResults) -> MinimalAnswer:
+        context = self.create_context(result)
+        answer = self._predict(context=context, question=result.question_str)
+        return MinimalAnswer(**result.model_dump(), answer=answer)
 
-            ret = self._predict(context=context, question=result.question_str)
+    def answer_dataset(self) -> None:
+        results = self.load_search_results(self.results_path)
+        answers: list[MinimalAnswer] = []
 
-            answer.append(
-                MinimalAnswer(**result.model_dump(), answer=ret.answer))
-        self.save(SSRAA(search_results=answer, k=self._results.k))
+        for result in tqdm(results.search_results, desc="answering"):
+            formated_answer = self.answer(result)
+
+            answers.append(formated_answer)
+        self.save(SSRAA(search_results=answers, k=results.k))
 
     def save(self, answer: SSRAA) -> None:
         try:

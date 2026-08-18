@@ -1,7 +1,6 @@
 from langchain_text_splitters import (RecursiveCharacterTextSplitter as RCTS,
                                       Language)
-from chromadb.utils.embedding_functions import (OllamaEmbeddingFunction,
-                                                EmbeddingFunction)
+from chromadb.utils.embedding_functions import OllamaEmbeddingFunction
 from src.models import ChunkData, MinimalSource
 from pydantic import BaseModel, Field
 from tqdm import tqdm  # type: ignore
@@ -10,7 +9,7 @@ from chromadb import ClientAPI, Collection
 from src.config import Config
 import bm25s  # type: ignore
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 import chromadb
 import shutil
 import hashlib
@@ -22,6 +21,7 @@ class Index(BaseModel):
     chunk_size: int = Field(gt=0, le=2000)
     embedding_flag: bool = Field(default=False)
     incremental_flag: bool = Field(default=True)
+    chunks_per_call: int = Field(gt=0, default=1)
 
     def model_post_init(self, _: Any) -> None:
         self._deleted: list[str] = []
@@ -34,10 +34,9 @@ class Index(BaseModel):
             if Path(Config.CHROMA_PATH).exists():
                 shutil.rmtree(Config.CHROMA_PATH)
             oef = OllamaEmbeddingFunction(model_name=Config.EMBEDDING_MODEL)
-            ef = cast(EmbeddingFunction, oef)
             cli: ClientAPI = chromadb.PersistentClient(path=Config.CHROMA_PATH)
             self._collection: Collection = cli.get_or_create_collection(
-                "collection", embedding_function=ef)
+                "collection", embedding_function=oef)
 
     @staticmethod
     def _hash(file: Path) -> str:
@@ -50,7 +49,8 @@ class Index(BaseModel):
 
     def _load_existing_chunks(self) -> list[ChunkData]:
         path = Path(Config.CHUNKS_PATH)
-        if not self.incremental_flag or not path.exists():
+        if not self.incremental_flag or self.embedding_flag \
+                or not path.exists():
             if path.exists():
                 path.unlink()
             return []
@@ -154,10 +154,11 @@ class Index(BaseModel):
         except OSError as e:
             raise RagIndexError(f"Can't save chunk to file {file}.") from e
 
-    def embedding(self, size: int = 42) -> None:
+    def embedding(self) -> None:
         chunks = self._chunks
         ids = [str(i) for i in range(len(chunks))]
         docs = [c.content for c in chunks]
+        size = self.chunks_per_call
 
         for start in tqdm(range(0, len(chunks), size), desc="Embedding: "):
             end = start + size

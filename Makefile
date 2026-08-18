@@ -19,6 +19,7 @@ improved: install
 install: data Makefile
 	uv sync
 	ollama pull qwen3:0.6b
+	ollama pull nomic-embed-text
 	@echo "\033[0;32m\n[OK] installation completed ✔\n\033[0m"
 
 debug:
