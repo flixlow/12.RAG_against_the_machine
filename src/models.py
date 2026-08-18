@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field
 from typing import List
 import uuid
 
@@ -18,8 +18,6 @@ class MinimalSearchResults(BaseModel):
     question_id: str
     question_str: str
     retrieved_sources: List[MinimalSource]
-
-    model_config = ConfigDict(frozen=True)
 
 
 class AnsweredQuestion(UnansweredQuestion):

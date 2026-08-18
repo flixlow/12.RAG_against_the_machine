@@ -63,21 +63,25 @@ class Rag:
                           hybrid=hybrid, expansion=expansion)
         searcher.search_dataset()
 
-    def answer(self, query: str | None = None, k: int = 5) -> MinimalAnswer:
+    def answer(self, query: str | None = None, k: int = 5,
+               caching: bool = True) -> MinimalAnswer:
         raw_str = self.search(query)
         search_results = MinimalSearchResults.model_validate_json(raw_str)
 
         provider = Answer(
             results_path=Config.SINGLE_QUERY,
-            save_directory=Config.ANSWER_PATH
+            save_directory=Config.ANSWER_PATH,
+            cache_flag=caching
         )
         return provider.answer(search_results)
 
     def answer_dataset(self, student_search_results_path: str,
-                       save_directory: str = Config.ANSWER_PATH) -> None:
+                       save_directory: str = Config.ANSWER_PATH,
+                       caching: bool = True) -> None:
         provider = Answer(
             results_path=student_search_results_path,
-            save_directory=save_directory
+            save_directory=save_directory,
+            cache_flag=caching
         )
         provider.answer_dataset()
 

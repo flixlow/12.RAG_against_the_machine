@@ -15,3 +15,4 @@ class Config:
     SINGLE_QUERY = "single_query.json"
     SIDE_CHUNKS_PATH = PROCESSED + "chunks/side.json"
     MANIFEST = "data/.manifest"
+    CACHE = "data/.cache"
