@@ -33,10 +33,10 @@ clean:
 	rm -rf data
 
 lint:
-	flake8 src && mypy $(LINT_FLAG) src
+	uv run -m flake8 src && uv run -m mypy $(LINT_FLAG) src
 
 lint-strict:
-	flake8 src && mypy src --strict
+	uv run -m flake8 src && uv run -m mypy src --strict
 
 data: data/.installed
 

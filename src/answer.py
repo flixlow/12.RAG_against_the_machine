@@ -6,8 +6,8 @@ from src.errors import AnswerError
 from src.config import Config
 from pathlib import Path
 from typing import Any
-from tqdm import tqdm  # type: ignore
-import dspy  # type: ignore
+from tqdm import tqdm
+import dspy
 import json
 
 
@@ -44,7 +44,7 @@ class Answer(BaseModel):
     def _load_cache() -> dict[str, str]:
         try:
             with open(Path(Config.CACHE)) as f:
-                return json.load(f)
+                return dict(json.load(f))
         except (OSError, json.JSONDecodeError):
             return {}
 
@@ -85,7 +85,7 @@ class Answer(BaseModel):
             with open(Config.CACHE, 'w') as f:
                 json.dump(self._cache, f, ensure_ascii=False, indent=4)
         except (OSError, json.JSONDecodeError):
-            AnswerError("Error occurs when saving cache.")
+            raise AnswerError("Error occurs when saving cache.")
 
     def save(self, answers: SSRAA) -> None:
         try:
@@ -107,8 +107,9 @@ class Answer(BaseModel):
                 pass
         c = Answer.create_context(result)
         new = self._predict(context=c, question=result.question_str)
-        self._cache[result.question_str] = new.answer
-        self.save_cache()
+        if self.cache_flag:
+            self._cache[result.question_str] = new.answer
+            self.save_cache()
         return MinimalAnswer(**result.model_dump(), answer=new.answer)
 
     def answer_dataset(self) -> None:

@@ -1,18 +1,19 @@
 from langchain_text_splitters import (RecursiveCharacterTextSplitter as RCTS,
                                       Language)
-from chromadb.utils.embedding_functions import OllamaEmbeddingFunction
+from chromadb.utils.embedding_functions import (OllamaEmbeddingFunction,
+                                                EmbeddingFunction)
 from src.models import ChunkData, MinimalSource
 from pydantic import BaseModel, Field
-from tqdm import tqdm  # type: ignore
 from src.errors import RagIndexError
 from chromadb import ClientAPI, Collection
 from src.config import Config
-import bm25s  # type: ignore
+from typing import Any, cast
 from pathlib import Path
-from typing import Any
+from tqdm import tqdm
 import chromadb
-import shutil
 import hashlib
+import shutil
+import bm25s
 import json
 
 
@@ -34,9 +35,10 @@ class Index(BaseModel):
             if Path(Config.CHROMA_PATH).exists():
                 shutil.rmtree(Config.CHROMA_PATH)
             oef = OllamaEmbeddingFunction(model_name=Config.EMBEDDING_MODEL)
+            ef = cast(EmbeddingFunction, oef)
             cli: ClientAPI = chromadb.PersistentClient(path=Config.CHROMA_PATH)
             self._collection: Collection = cli.get_or_create_collection(
-                "collection", embedding_function=oef)
+                "collection", embedding_function=ef)
 
     @staticmethod
     def _hash(file: Path) -> str:

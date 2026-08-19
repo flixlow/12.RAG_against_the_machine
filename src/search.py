@@ -1,17 +1,17 @@
 from src.models import UnansweredQuestion, MinimalSearchResults
 from src.models import MinimalSource, StudentSearchResults
-from tqdm import tqdm  # type: ignore
 from collections import defaultdict
 from src.errors import SearchError
 from chromadb import Collection
 from pydantic import BaseModel
 from src.config import Config
-import bm25s  # type: ignore
-import dspy  # type: ignore
 from pathlib import Path
 from bm25s import BM25
 from typing import Any
+from tqdm import tqdm
 import chromadb
+import bm25s
+import dspy
 import json
 
 
@@ -62,7 +62,7 @@ class Search(BaseModel):
             self._predict = dspy.Predict(QA)
 
     def expand_query(self, query: str) -> str:
-        result = self._predict(query=query)
+        result: QA = self._predict(query=query)
         return result.expanded_query
 
     def reciprocal_rank_fusion(self, bm25_results: list[int],
