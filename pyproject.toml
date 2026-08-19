@@ -8,6 +8,7 @@ dependencies = [
     "bm25s>=0.3.9",
     "chromadb>=1.5.9",
     "dspy>=3.2.1",
+    "fastapi[standard]>=0.141.1",
     "fire>=0.7.1",
     "langchain-text-splitters>=1.1.2",
     "mypy>=2.1.0",

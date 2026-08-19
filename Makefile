@@ -86,6 +86,9 @@ recall_code:
 best:
 	make index ARG="--max_chunk_size=1200" && make search_dataset && make evaluate_docs && make evaluate_code
 
+api:
+	uv run -m fastapi dev src/api.py
+
 exam: moulinette
 	cp ~/Downloads/exams.zip . 
 	cp ~/Downloads/datasets_private.zip .

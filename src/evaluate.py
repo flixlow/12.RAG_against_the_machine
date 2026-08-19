@@ -1,8 +1,8 @@
-import json
-from typing import Any
-from pydantic import BaseModel
-from src.errors import EvaluateError
 from src.models import AnsweredQuestion, RagDataset, StudentSearchResults
+from src.errors import EvaluateError
+from pydantic import BaseModel
+from typing import Any
+import json
 
 
 class Evaluator(BaseModel):

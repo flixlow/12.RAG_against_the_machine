@@ -1,4 +1,4 @@
-from src.models import UnansweredQuestion, MinimalSearchResults, MinimalAnswer
+from src.models import UnansweredQuestion, MinimalSearchResults
 from src.errors import SearchError, InputSingleQueryError
 from src.search import Search
 from src.config import Config
