@@ -96,6 +96,9 @@ class Search(BaseModel):
         query = self.expand_query(unanswerer.question) if self.expansion \
             else unanswerer.question
 
+        if self.expansion:
+            print(query)
+
         if not self.hybrid:
             ids = self.search_bm25(query, self.k)
         else:

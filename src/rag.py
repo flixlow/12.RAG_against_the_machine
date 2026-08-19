@@ -64,8 +64,9 @@ class Rag:
         searcher.search_dataset()
 
     def answer(self, query: str | None = None, k: int = 5,
-               caching: bool = True) -> str:
-        raw_str = self.search(query, k)
+               caching: bool = True, hybrid: bool = False,
+               expansion: bool = False) -> str:
+        raw_str = self.search(query, k, hybrid, expansion)
         search_results = MinimalSearchResults.model_validate_json(raw_str)
 
         provider = Answer(

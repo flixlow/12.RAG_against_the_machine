@@ -1,14 +1,14 @@
 from langchain_text_splitters import (RecursiveCharacterTextSplitter as RCTS,
                                       Language)
-from chromadb.utils.embedding_functions import (OllamaEmbeddingFunction,
-                                                EmbeddingFunction)
+from chromadb.utils.embedding_functions import (
+    SentenceTransformerEmbeddingFunction)
 from src.models import ChunkData, MinimalSource
+from chromadb import ClientAPI, Collection
 from pydantic import BaseModel, Field
 from src.errors import RagIndexError
-from chromadb import ClientAPI, Collection
 from src.config import Config
-from typing import Any, cast
 from pathlib import Path
+from typing import Any
 from tqdm import tqdm
 import chromadb
 import hashlib
@@ -22,7 +22,7 @@ class Index(BaseModel):
     chunk_size: int = Field(gt=0, le=2000)
     embedding_flag: bool = Field(default=False)
     incremental_flag: bool = Field(default=True)
-    chunks_per_call: int = Field(gt=0, default=1)
+    chunks_per_call: int = Field(gt=0, default=42)
 
     def model_post_init(self, _: Any) -> None:
         self._deleted: list[str] = []
@@ -34,8 +34,8 @@ class Index(BaseModel):
         if self.embedding_flag:
             if Path(Config.CHROMA_PATH).exists():
                 shutil.rmtree(Config.CHROMA_PATH)
-            oef = OllamaEmbeddingFunction(model_name=Config.EMBEDDING_MODEL)
-            ef = cast(EmbeddingFunction, oef)
+            ef = SentenceTransformerEmbeddingFunction(
+                model_name=Config.EMBEDDING_MODEL, device="cpu")
             cli: ClientAPI = chromadb.PersistentClient(path=Config.CHROMA_PATH)
             self._collection: Collection = cli.get_or_create_collection(
                 "collection", embedding_function=ef)
@@ -170,7 +170,7 @@ class Index(BaseModel):
     def index(self) -> None:
         corpus = [c.content for c in self._chunks]
 
-        if not self._has_changes:
+        if not self._has_changes and Path(Config.BM25_PATH).exists():
             return
 
         corpus_tokens = bm25s.tokenize(corpus)
