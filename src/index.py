@@ -1,14 +1,15 @@
 from langchain_text_splitters import (RecursiveCharacterTextSplitter as RCTS,
                                       Language)
 from chromadb.utils.embedding_functions import (
+    EmbeddingFunction,
     SentenceTransformerEmbeddingFunction)
 from src.models import ChunkData, MinimalSource
 from chromadb import ClientAPI, Collection
 from pydantic import BaseModel, Field
 from src.errors import RagIndexError
 from src.config import Config
+from typing import Any, cast
 from pathlib import Path
-from typing import Any
 from tqdm import tqdm
 import chromadb
 import hashlib
@@ -34,8 +35,9 @@ class Index(BaseModel):
         if self.embedding_flag:
             if Path(Config.CHROMA_PATH).exists():
                 shutil.rmtree(Config.CHROMA_PATH)
-            ef = SentenceTransformerEmbeddingFunction(
+            stef = SentenceTransformerEmbeddingFunction(
                 model_name=Config.EMBEDDING_MODEL, device="cpu")
+            ef = cast(EmbeddingFunction, stef)
             cli: ClientAPI = chromadb.PersistentClient(path=Config.CHROMA_PATH)
             self._collection: Collection = cli.get_or_create_collection(
                 "collection", embedding_function=ef)

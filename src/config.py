@@ -9,7 +9,6 @@ class Config:
     ANSWER_PATH = OUTPUT + "search_results_and_answer"
     BM25_PATH = PROCESSED + "bm25_index"
     MODEL = "ollama/qwen3:0.6b"
-    # EMBEDDING_MODEL = "all-minilm:l6-v2"
     EMBEDDING_MODEL = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
     API_BASE = "http://localhost:11434"
     SINGLE_QUERY = "single_query.json"

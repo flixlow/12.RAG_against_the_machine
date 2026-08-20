@@ -54,6 +54,24 @@ make evaluate_docs & make evaluate_code
 uv run -m src evaluate <student_search_results_path> <dataset_path>
 ```
 
+## Resources
+
+### Technical references
+
+- Fire documentation: https://python-fire.readthedocs.io/en/latest/
+- LangChain text splitters: https://reference.langchain.com/python/langchain-text-splitters
+- Pydantic docs: https://pydantic.dev/docs/validation/latest/get-started
+- Pathlib documentation: https://docs.python.org/3/library/pathlib.html
+- BM25S documentation: https://bm25s.github.io/
+- tqdm documentation: https://tqdm.github.io/
+- Ollama model library: https://ollama.com/library
+
+### AI usage in this project
+
+1. Query expansion
+   - A DSPy-based LM rewrites the original question into more retrieval-friendly terms, improving lexical recall for ambiguous queries.
+   - README structure
+
 ## System architecture
 
 The architecture follows the standard RAG pattern, adapted to a code/documentation corpus:
@@ -83,15 +101,6 @@ The architecture follows the standard RAG pattern, adapted to a code/documentati
    - The `Evaluator` compares retrieved source spans with the expected answer source using recall@k.
    - The evaluation checks overlap on the file and character range, using an IoU-like criterion.
 
-This is implemented mainly in:
-
-- `src/index.py` for chunking and indexing;
-- `src/search.py` for BM25 and query expansion;
-- `src/answer.py` for answer generation from retrieved context;
-- `src/evaluate.py` for retrieval-quality assessment;
-- `src/rag.py` as the public CLI orchestrator;
-- `src/config.py`, `src/models.py`, and supporting modules.
-
 ## Chunking strategy
 
 The chunking strategy is central to the quality of the retrieval pipeline.
@@ -99,34 +108,23 @@ The chunking strategy is central to the quality of the retrieval pipeline.
 - Default chunk size: `2000` characters
 - Chunk overlap: `20%` of the chunk size, which preserves continuity across section boundaries
 - File-aware splitting:
-  - Python files use `Language.PYTHON`
-  - Markdown files use `Language.MARKDOWN`
+  - Python files use `Language.PYTHON` splitter
+  - Markdown files use `Language.MARKDOWN` splitter
   - Plain text falls back to a generic recursive text splitter
 - Metadata preservation:
   - `file_path`
   - `first_character_index`
   - `last_character_index`
 
-This design provides a good trade-off between context richness and retrieval precision. Smaller chunks are easier to match, while larger chunks keep enough surrounding context to support reasoning on technical code and documentation sections.
-
 ## Retrieval method
 
 ### Lexical retrieval
 
-BM25 is used to score document chunks based on term frequency and document distribution, with a length-normalization effect. This gives strong results on code identifiers, API names, configuration keys, and technical vocabulary.
+BM25 ranks chunks by rare terms that appear several times, while also correcting for document length. This makes it effective for code and docs, where precise terms such as function names or flags should matter more than common filler words.
 
-The retrieval process can optionally use query expansion before retrieval. This is done through a DSPy-based signature that rewrites the user question into more retrieval-friendly keywords.
+TF-IDF is similar, but it does not directly normalize for long documents. It favors rare and frequent words in a document, while BM25 better handles larger chunks by reducing the advantage of long texts.
 
-## Bonus
-
-These optional/advanced features are implemented or can be enabled as extras:
-
-- **Semantic embeddings:** add a vector index built with a lightweight CPU embedding model (for example `all-MiniLM-L6-v2`) alongside the BM25 lexical index; store vectors in ChromaDB and use them for dense semantic matching.
-- **Hybrid retrieval:** combine lexical (BM25) and semantic (embedding) rankings into a single fused result list (for example via Reciprocal Rank Fusion) to leverage both exact keyword matches and semantic similarity.
-- **Incremental indexing:** track files via a manifest and re-index only changed files instead of rebuilding the entire index, reducing indexing time for large codebases.
-- **Caching:** cache indexes and query results to speed up cold starts and repeated queries (local on-disk caches for BM25 metadata and serialized query responses).
-- **Local HTTP API:** expose querying and answering over a small FastAPI-based HTTP API so the system can be driven by tools other than the CLI.
-- **Query expansion:** (optional) use a small LM-based rewriter (DSPy or similar) to expand or rewrite user queries into more retrieval-friendly variants before performing lexical/semantic lookup.
+In short: BM25 searches for rare words repeated in relatively short, relevant chunks; TF-IDF searches for rare words in a document without length correction.
 
 ## Performance analysis
 
@@ -145,6 +143,18 @@ The evaluation logic is implemented in `src/evaluate.py`, and the project provid
 - `make recall_code`
 - `make evaluate_docs`
 - `make evaluate_code`
+
+Recall@k Calculation on public docs:
+Recall@1: 0.61 (61.0%)
+Recall@3: 0.77 (77.0%)
+Recall@5: 0.82 (82.0%)
+Recall@10: 0.82 (82.0%)
+
+Recall@k Calculation on public code:
+Recall@1: 0.32 (32.3%)
+Recall@3: 0.47 (47.5%)
+Recall@5: 0.59 (58.6%)
+Recall@10: 0.59 (58.6%)
 
 ## Design decisions
 
@@ -177,33 +187,30 @@ The main technical challenges were the following:
    - Ollama models must be downloaded locally before indexing and answering.
    - The project includes installation targets that pull the required models and sets clear error messages when collections or indexes are missing.
 
-## Performance analysis examples
+## Examples
 
 ```bash
-make search_dataset
-make answer_dataset
+uv run -m src index --embedding
+
+uv run -m src search "What is Rag ?" --hybrid
+
+uv run -m answer "What is Rag ?"
+
+answer :
+"The RAG (Retrieval-Augmented Generation) system leverages embedding models and cross-encoder reranking to efficiently retrieve relevant information from large text datasets. It improves retrieval accuracy by combining candidate query-document pairs with reranking, which enhances the quality of generated outputs."
+
 ```
 
-## Resources
+## Bonus
 
-### Technical references
+These optional/advanced features are implemented or can be enabled as extras:
 
-- Fire documentation: https://python-fire.readthedocs.io/en/latest/
-- LangChain text splitters: https://reference.langchain.com/python/langchain-text-splitters
-- Pydantic docs: https://pydantic.dev/docs/validation/latest/get-started
-- Pathlib documentation: https://docs.python.org/3/library/pathlib.html
-- BM25S documentation: https://bm25s.github.io/
-- tqdm documentation: https://tqdm.github.io/
-- Ollama model library: https://ollama.com/library
-
-### AI usage in this project
-
-1. Query expansion
-   - A DSPy-based LM rewrites the original question into more retrieval-friendly terms, improving lexical recall for ambiguous queries.
-
-2. Answer generation
-   - The final answer is generated by a local Qwen model using the retrieved source snippets as context.
-   - The model is instructed to answer only from the provided evidence to minimize hallucinations.
+- **Semantic embeddings:** add a vector index built with a lightweight CPU embedding model (for example `all-MiniLM-L6-v2`) alongside the BM25 lexical index; store vectors in ChromaDB and use them for dense semantic matching.
+- **Hybrid retrieval:** combine lexical (BM25) and semantic (embedding) rankings into a single fused result list (for example via Reciprocal Rank Fusion) to leverage both exact keyword matches and semantic similarity.
+- **Incremental indexing:** track files via a manifest and re-index only changed files instead of rebuilding the entire index, reducing indexing time for large codebases.
+- **Caching:** cache indexes and query results to speed up cold starts and repeated queries (local on-disk caches for BM25 metadata and serialized query responses).
+- **Local HTTP API:** expose querying and answering over a small FastAPI-based HTTP API so the system can be driven by tools other than the CLI.
+- **Query expansion:** (optional) use a small LM-based rewriter (DSPy or similar) to expand or rewrite user queries into more retrieval-friendly variants before performing lexical/semantic lookup.
 
 ## Project structure
 
@@ -231,7 +238,3 @@ make answer_dataset
 ├── zip/
 └── assets/
 ```
-
-## Summary
-
-This project implements a compact RAG system for a large code and documentation corpus focusing on lexical retrieval, chunking, generation, and evaluation. It is intended as both a practical engineering project and a local benchmark for understanding how retrieval quality influences final answer quality.

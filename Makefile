@@ -15,7 +15,7 @@ install: data Makefile
 	ollama pull qwen3:0.6b
 	@echo "\033[0;32m\n[OK] installation completed ✔\n\033[0m"
 
-run: install index search_dataset evaluate_docs evaluate_code answer_dataset
+run: install index search_dataset recall_docs recall_code answer_dataset
 
 debug:
 	uv run pdb -m src
