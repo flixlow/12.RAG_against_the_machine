@@ -111,7 +111,7 @@ class Search(BaseModel):
             sources.append(MinimalSource(**metadata))
 
         return MinimalSearchResults(question_id=unanswerer.question_id,
-                                    question_str=unanswerer.question,
+                                    question=unanswerer.question,
                                     retrieved_sources=sources)
 
     def search_dataset(self) -> None:

@@ -100,15 +100,15 @@ class Answer(BaseModel):
     def answer(self, result: MinimalSearchResults) -> MinimalAnswer:
         if self.cache_flag is True:
             try:
-                cache_answer = self._cache[result.question_str]
+                cache_answer = self._cache[result.question]
                 return MinimalAnswer(
                     **result.model_dump(), answer=cache_answer)
             except KeyError:
                 pass
         c = Answer.create_context(result)
-        new = self._predict(context=c, question=result.question_str)
+        new = self._predict(context=c, question=result.question)
         if self.cache_flag:
-            self._cache[result.question_str] = new.answer
+            self._cache[result.question] = new.answer
             self.save_cache()
         return MinimalAnswer(**result.model_dump(), answer=new.answer)
 

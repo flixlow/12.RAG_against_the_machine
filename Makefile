@@ -15,21 +15,22 @@ install: data Makefile
 	ollama pull qwen3:0.6b
 	@echo "\033[0;32m\n[OK] installation completed ✔\n\033[0m"
 
+run: install index search_dataset evaluate_docs evaluate_code answer_dataset
+
 debug:
 	uv run pdb -m src
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
-	rm -rf moulinette_pkg
+	rm -rf moulinette-ubuntu
+	rm -rf moulinette-fedora
+	rm -rf .moulinette
 	rm -rf .venv
 	rm -rf data
 
 lint:
 	uv run -m flake8 src && uv run -m mypy $(LINT_FLAG) src
-
-lint-strict:
-	uv run -m flake8 src && uv run -m mypy src --strict
 
 index:
 	$(RUN) index $(ARG)
@@ -49,10 +50,10 @@ answer_dataset:
 	$(RUN) answer_dataset data/output/search_results/dataset_code_public.json $(ARG)
 
 evaluate_docs: moulinette
-	./moulinette_pkg/moulinette-ubuntu evaluate_student_search_results $(PUBLIC_DOCS_SEARCH_RESULTS) $(PUBLIC_DOCS_ANSWERED_QUESTIONS)
+	./moulinette-ubuntu evaluate_student_search_results $(PUBLIC_DOCS_SEARCH_RESULTS) $(PUBLIC_DOCS_ANSWERED_QUESTIONS)
 
 evaluate_code: moulinette
-	./moulinette_pkg/moulinette-ubuntu evaluate_student_search_results $(PUBLIC_CODE_SEARCH_RESULTS) $(PUBLIC_CODE_ANSWERED_QUESTIONS)
+	./moulinette-ubuntu evaluate_student_search_results $(PUBLIC_CODE_SEARCH_RESULTS) $(PUBLIC_CODE_ANSWERED_QUESTIONS)
 
 recall_docs:
 	$(RUN) evaluate $(PUBLIC_DOCS_SEARCH_RESULTS) $(PUBLIC_DOCS_ANSWERED_QUESTIONS)
@@ -71,10 +72,10 @@ data/.installed: datasets_public.zip vllm-0.10.1.zip
 	unzip vllm-0.10.1.zip -d data/raw >/dev/null
 	touch data/.installed
 
-moulinette: moulinette_pkg/.installed
+moulinette: .moulinette
 
-moulinette_pkg/.installed: moulinette.zip
+.moulinette: moulinette.zip
 	unzip moulinette.zip
-	touch moulinette_pkg/.installed
+	touch .moulinette
 
-.PHONY: run install debug clean lint lint-strict data moulinette index search search_dataset answer answer_dataset evaluate recall_docs recall_code
+.PHONY: run install debug clean lint data moulinette index search search_dataset answer answer_dataset evaluate_docs evaluate_code recall_docs recall_code

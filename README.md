@@ -1,61 +1,4 @@
-*This project has been created as part of the 42 curriculum by flixlow.*
-
-# RAG against the machine
-
-Will you answer my questions?
-
-## Description
-
-This project builds a local Retrieval-Augmented Generation (RAG) pipeline over the vLLM repository. The goal is to ingest a large codebase and documentation tree, segment it into searchable chunks, retrieve the most relevant passages for a user question, and answer that question with citations to the original source files while staying grounded in the retrieved context.
-
-The project is designed around a hybrid retrieval system:
-
-- a lexical index based on BM25, optimized for exact keyword matching and technical terms;
-- a semantic index built with embeddings and stored in ChromaDB;
-- an LLM answer step driven by Ollama and the local Qwen model;
-- an evaluation layer computing recall@k against a public dataset of reference questions.
-
-The system is implemented as a Python CLI and can also be launched through a small FastAPI interface. It was built to work locally, without depending on a remote API for the retrieval and answer pipeline.
-
-## System architecture
-
-The architecture follows the standard RAG pattern, but adapted to a code/documentation corpus:
-
-1. Ingestion layer
-   - The project scans the raw repository tree under `data/raw/`.
-   - It detects new, modified, and deleted files using a manifest-based incremental index.
-   - Files are opened and parsed according to their extension (`.py`, `.md`, `.txt`).
-
-2. Chunking layer
-   - Each file is split into chunks using `RecursiveCharacterTextSplitter` from LangChain.
-   - Each chunk keeps metadata including the source file path and character offsets, which is essential for both retrieval quality and evaluation.
-
-3. Indexing layer
-   - A BM25 lexical index is built with `bm25s`.
-   - A semantic vector index is created with ChromaDB and Ollama embeddings.
-   - Persisted data is stored in `data/processed/` to avoid rebuilding everything on every run.
-
-4. Retrieval layer
-   - A `Search` component performs BM25 lookup, semantic lookup, and hybrid fusion.
-   - Optional query expansion can be used before retrieval to enrich the initial user question.
-   - Hybrid search combines both retrieval sources using Reciprocal Rank Fusion (RRF).
-
-5. Answer generation layer
-   - The `Answer` component loads the top retrieved sources.
-   - It reconstructs the relevant context from the original files.
-   - It prompts the local LLM to answer using only the retrieved sources, reducing hallucination risk.
-
-6. Evaluation layer
-   - The `Evaluator` compares retrieved source spans with the expected answer source using recall@k.
-   - The evaluation checks overlap on the file and character range, using an IoU-like criterion.
-
-This is implemented mainly in:
-
-- `src/index.py` for chunking, indexing, and incremental update logic;
-- `src/search.py` for BM25, vector search, hybrid ranking, and query expansion;
-- `src/answer.py` for answer generation from retrieved context;
-
-*This project has been created as part of the 42 curriculum by flixlow.*
+*This project has been created as part of the 42 curriculum by flauweri.*
 
 # RAG against the machine
 
@@ -68,6 +11,48 @@ This project builds a local Retrieval-Augmented Generation (RAG) pipeline over t
 The project centers on a lexical retrieval system with a BM25 index, an LLM answer step, and an evaluation layer computing recall@k against a public dataset of reference questions.
 
 The system is implemented as a Python CLI and is designed to work locally without depending on a remote API for the retrieval and answer pipeline.
+
+## Instructions
+
+### Requirements
+
+- Python 3.13+
+- `uv`
+- Ollama installed and running locally
+- Download vllm-0.10.1.zip
+
+### Installation
+
+From another terminal:
+
+`ollama serve`
+
+From the project root:
+
+`make install`
+
+### Common commands
+
+```bash
+make install
+make run
+make debug
+make clean
+make lint
+
+make index
+uv run -m src index [--dir <dir path>] [--max_chunk_size=<n>] [--embedding=<bool>] [--incremental=<bool>]
+make search
+uv run -m src search --query "<query>" [--k=<n>] [--hybrid=<bool>] [--expansion=<bool>]
+make search_dataset
+uv run -m src search_dataset <dataset_path> [--k=<n>] [--save_directory <dir path>] [--hybrid=<bool>] [--expansion=<bool>]
+make answer
+uv run -m src answer --query "<query>" [--k=<n>] [--caching=<bool>] [--hybrid=<bool>] [--expansion=<bool>]
+make answer_dataset
+uv run -m src answer_dataset <student_search_results_path> [--save_directory <dir path>] [--caching=<bool>]
+make evaluate_docs & make evaluate_code
+uv run -m src evaluate <student_search_results_path> <dataset_path>
+```
 
 ## System architecture
 
@@ -191,45 +176,6 @@ The main technical challenges were the following:
 5. Local model setup and dependencies
    - Ollama models must be downloaded locally before indexing and answering.
    - The project includes installation targets that pull the required models and sets clear error messages when collections or indexes are missing.
-
-## Instructions
-
-### Requirements
-
-- Python 3.13+
-- `uv`
-- Ollama installed and running locally
-- Access to the repository data under `data/raw/`
-
-### Installation
-
-From the project root:
-
-```bash
-uv sync
-ollama pull qwen3:0.6b
-```
-
-The project also includes model pulls in the `Makefile` and a convenience `make install` target.
-
-### Common commands
-
-```bash
-make install
-make index
-make search_dataset
-make answer_dataset
-make evaluate_docs
-make evaluate_code
-```
-
-### Single query examples
-
-```bash
-uv run -m src search --query "How to configure OpenAI server?" --k 5
-uv run -m src answer --query "How to configure OpenAI server?" --k 5
-uv run -m src index --dir data/raw/vllm-0.10.1 --max_chunk_size 2000
-```
 
 ## Performance analysis examples
 

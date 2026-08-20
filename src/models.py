@@ -16,7 +16,7 @@ class UnansweredQuestion(BaseModel):
 
 class MinimalSearchResults(BaseModel):
     question_id: str
-    question_str: str
+    question: str
     retrieved_sources: List[MinimalSource]
 
 
