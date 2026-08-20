@@ -18,7 +18,7 @@ install: data Makefile
 run: install index search_dataset recall_docs recall_code answer_dataset
 
 debug:
-	uv run pdb -m src
+	uv run -m pdb -m src
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
